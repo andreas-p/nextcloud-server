@@ -38,6 +38,10 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 		if ($this->getName() === BirthdayService::BIRTHDAY_CALENDAR_URI) {
 			$this->calendarInfo['{DAV:}displayname'] = $l10n->t('Contact birthdays');
 		}
+		if ($this->getName() === CalDavBackend::PERSONAL_CALENDAR_URI &&
+			$this->calendarInfo['{DAV:}displayname'] === CalDavBackend::PERSONAL_CALENDAR_NAME) {
+			$this->calendarInfo['{DAV:}displayname'] = $l10n->t('Personal');
+		}
 	}
 
 	/**
@@ -89,6 +93,13 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 		return $this->calendarInfo['id'];
 	}
 
+	/**
+	 * @return string
+	 */
+	public function getPrincipalURI() {
+		return $this->calendarInfo['principaluri'];
+	}
+
 	function getACL() {
 		$acl =  [
 			[
@@ -116,6 +127,13 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 					'protected' => true,
 				];
 			}
+		}
+		if ($this->isPublic()) {
+			$acl[] = [
+				'privilege' => '{DAV:}read',
+				'principal' => 'principals/system/public',
+				'protected' => true,
+			];
 		}
 
 		/** @var CalDavBackend $calDavBackend */
@@ -236,6 +254,23 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 		return $uris;
 	}
 
+	/**
+	 * @param boolean $value
+	 * @return string|null
+	 */
+	function setPublishStatus($value) {
+		$publicUri = $this->caldavBackend->setPublishStatus($value, $this);
+		$this->calendarInfo['publicuri'] = $publicUri;
+		return $publicUri;
+	}
+
+	/**
+	 * @return mixed $value
+	 */
+	function getPublishStatus() {
+		return $this->caldavBackend->getPublishStatus($this);
+	}
+
 	private function canWrite() {
 		if (isset($this->calendarInfo['{http://owncloud.org/ns}read-only'])) {
 			return !$this->calendarInfo['{http://owncloud.org/ns}read-only'];
@@ -243,8 +278,16 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 		return true;
 	}
 
+	private function isPublic() {
+		return isset($this->calendarInfo['{http://owncloud.org/ns}public']);
+	}
+
 	private function isShared() {
 		return isset($this->calendarInfo['{http://owncloud.org/ns}owner-principal']);
+	}
+
+	public function isSubscription() {
+		return isset($this->calendarInfo['{http://calendarserver.org/ns/}source']);
 	}
 
 }

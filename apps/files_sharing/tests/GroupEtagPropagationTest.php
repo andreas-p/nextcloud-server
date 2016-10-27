@@ -28,7 +28,7 @@ use OC\Files\Filesystem;
 use OC\Files\View;
 
 /**
- * @group DB
+ * @group SLOWDB
  *
  * @package OCA\Files_Sharing\Tests
  */
@@ -119,6 +119,28 @@ class GroupEtagPropagationTest extends PropagationTestCase {
 		Filesystem::file_put_contents('/sub/file.txt', 'asd');
 
 		$this->assertEtagsChanged([self::TEST_FILES_SHARING_API_USER1, self::TEST_FILES_SHARING_API_USER2, self::TEST_FILES_SHARING_API_USER3, self::TEST_FILES_SHARING_API_USER4]);
+
+		$this->assertAllUnchanged();
+	}
+
+	public function testRecipientUnsharesFromSelf() {
+		$this->loginAsUser(self::TEST_FILES_SHARING_API_USER2);
+		$this->assertTrue(
+			$this->rootView->unlink('/' . self::TEST_FILES_SHARING_API_USER2 . '/files/test')
+		);
+		$this->assertEtagsChanged([self::TEST_FILES_SHARING_API_USER2]);
+
+		$this->assertAllUnchanged();
+	}
+
+	public function testRecipientUnsharesFromSelfUniqueGroupShare() {
+		$this->loginAsUser(self::TEST_FILES_SHARING_API_USER2);
+		// rename to create an extra entry in the share table
+		$this->rootView->rename('/' . self::TEST_FILES_SHARING_API_USER2 . '/files/test', '/' . self::TEST_FILES_SHARING_API_USER2 . '/files/test_renamed');
+		$this->assertTrue(
+			$this->rootView->unlink('/' . self::TEST_FILES_SHARING_API_USER2 . '/files/test_renamed')
+		);
+		$this->assertEtagsChanged([self::TEST_FILES_SHARING_API_USER2]);
 
 		$this->assertAllUnchanged();
 	}

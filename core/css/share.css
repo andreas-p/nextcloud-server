@@ -50,6 +50,19 @@
 	height: 32px;
 }
 
+.share-autocomplete-item {
+	display: flex;
+}
+.share-autocomplete-item .autocomplete-item-text {
+	margin-left: 10px;
+	margin-right: 10px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	line-height: 32px;
+	vertical-align: middle;
+}
+
 #shareWithList {
 	list-style-type:none;
 	padding:8px;
@@ -61,6 +74,15 @@
 	font-weight: bold;
 	line-height: 21px;
 	white-space: normal;
+}
+
+#shareWithList .sharingOptionsGroup {
+	position: absolute;
+	right: 0;
+}
+
+#shareWithList .sharingOptionsGroup .popovermenu {
+	right: 44px;
 }
 
 #shareWithList .shareOption {
@@ -104,12 +126,10 @@ a.showCruds {
 }
 
 a.unshare {
-	display:inline;
-	float:right;
+	display:inline-block;
 	opacity:.5;
 	padding: 10px;
 	margin-top: -5px;
-	margin-right: -10px;
 }
 
 #link {

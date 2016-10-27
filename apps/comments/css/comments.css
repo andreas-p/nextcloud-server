@@ -21,15 +21,16 @@
 	width: calc(100% - 81px); /* 36 (left margin) + 30 (right padding) + 15 (right padding of surrounding box) */
 	margin-left: 36px;
 	padding-right: 30px;
+	display: block;
 }
 
 #commentsTabView .newCommentForm .submit {
 	position: absolute;
-	top: 1px;
+	bottom: 0px;
 	right: 8px;
 	width: 30px;
 	margin: 0;
-	padding: 9px;
+	padding: 7px 9px;
 	background-color: transparent;
 	border: none;
 	opacity: .3;
@@ -47,6 +48,10 @@
 	margin-right: 6px;
 }
 
+#commentsTabView .newCommentForm textarea {
+	resize: none;
+}
+
 #commentsTabView .comment {
 	position: relative;
 	z-index: 1;
@@ -59,35 +64,43 @@
 	line-height: 32px;
 }
 
+#commentsTabView .comment .message .avatar {
+	display: inline-block;
+}
+
+#activityTabView li.comment.collapsed .activitymessage,
 #commentsTabView .comment.collapsed .message {
 	white-space: pre-wrap;
 }
 
+#activityTabView li.comment.collapsed .activitymessage,
 #commentsTabView .comment.collapsed .message {
 	max-height: 70px;
 	overflow: hidden;
 }
 
+#activityTabView li.comment .message-overlay,
 #commentsTabView .comment .message-overlay {
 	display: none;
 }
 
+#activityTabView li.comment.collapsed .message-overlay,
 #commentsTabView .comment.collapsed .message-overlay {
 	display: block;
-    position: absolute;
+	position: absolute;
 	z-index: 2;
-    height: 50px;
-    pointer-events: none;
+	height: 50px;
+	pointer-events: none;
 	left: 0;
 	right: 0;
-    bottom: 0;
+	bottom: 0;
 	background: -moz-linear-gradient(rgba(255,255,255,0), rgba(255,255,255,1));
 	background: -webkit-linear-gradient(rgba(255,255,255,0), rgba(255,255,255,1));
 	background: -o-linear-gradient(rgba(255,255,255,0), rgba(255,255,255,1));
 	background: -ms-linear-gradient(rgba(255,255,255,0), rgba(255,255,255,1));
 	background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,1));
 	filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr='#00FFFFFF', endColorstr='#FFFFFFFF');
-    background-repeat: no-repeat;
+	background-repeat: no-repeat;
 }
 
 #commentsTabView .authorRow>div {

@@ -26,13 +26,13 @@
  */
 namespace OC\Console;
 
+use OC\NeedsUpdateException;
 use OC_App;
+use OCP\AppFramework\QueryException;
 use OCP\Console\ConsoleEvent;
-use OCP\Defaults;
 use OCP\IConfig;
 use OCP\IRequest;
 use Symfony\Component\Console\Application as SymfonyApplication;
-use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -85,31 +85,45 @@ class Application {
 		if ($input->getOption('no-warnings')) {
 			$output->setVerbosity(OutputInterface::VERBOSITY_QUIET);
 		}
-		require_once __DIR__ . '/../../../core/register_command.php';
-		if ($this->config->getSystemValue('installed', false)) {
-			if (\OCP\Util::needUpgrade()) {
-				$output->writeln("Nextcloud or one of the apps require upgrade - only a limited number of commands are available");
-				$output->writeln("You may use your browser or the occ upgrade command to do the upgrade");
-			} elseif ($this->config->getSystemValue('maintenance', false)) {
-				$output->writeln("Nextcloud is in maintenance mode - no app have been loaded");
-			} else {
-				OC_App::loadApps();
-				foreach (\OC::$server->getAppManager()->getInstalledApps() as $app) {
-					$appPath = \OC_App::getAppPath($app);
-					if($appPath === false) {
-						continue;
+		try {
+			require_once __DIR__ . '/../../../core/register_command.php';
+			if ($this->config->getSystemValue('installed', false)) {
+				if (\OCP\Util::needUpgrade()) {
+					throw new NeedsUpdateException();
+				} elseif ($this->config->getSystemValue('maintenance', false)) {
+					if ($input->getArgument('command') !== '_completion') {
+						$output->writeln("Nextcloud is in maintenance mode - no apps have been loaded");
 					}
-					\OC_App::registerAutoloading($app, $appPath);
-					$file = $appPath . '/appinfo/register_command.php';
-					if (file_exists($file)) {
-						require $file;
+				} else {
+					OC_App::loadApps();
+					foreach (\OC::$server->getAppManager()->getInstalledApps() as $app) {
+						$appPath = \OC_App::getAppPath($app);
+						if ($appPath === false) {
+							continue;
+						}
+						// load commands using info.xml
+						$info = \OC_App::getAppInfo($app);
+						if (isset($info['commands'])) {
+							$this->loadCommandsFromInfoXml($info['commands']);
+						}
+						// load from register_command.php
+						\OC_App::registerAutoloading($app, $appPath);
+						$file = $appPath . '/appinfo/register_command.php';
+						if (file_exists($file)) {
+							require $file;
+						}
 					}
 				}
+			} else if ($input->getArgument('command') !== '_completion') {
+				$output->writeln("Nextcloud is not installed - only a limited number of commands are available");
 			}
-		} else {
-			$output->writeln("Nextcloud is not installed - only a limited number of commands are available");
+		} catch(NeedsUpdateException $e) {
+			if ($input->getArgument('command') !== '_completion') {
+				$output->writeln("Nextcloud or one of the apps require upgrade - only a limited number of commands are available");
+				$output->writeln("You may use your browser or the occ upgrade command to do the upgrade");
+			}
 		}
-		$input = new ArgvInput();
+
 		if ($input->getFirstArgument() !== 'check') {
 			$errors = \OC_Util::checkServer(\OC::$server->getConfig());
 			if (!empty($errors)) {
@@ -144,5 +158,21 @@ class Application {
 			$this->request->server['argv']
 		));
 		return $this->application->run($input, $output);
+	}
+
+	private function loadCommandsFromInfoXml($commands) {
+		foreach ($commands as $command) {
+			try {
+				$c = \OC::$server->query($command);
+			} catch (QueryException $e) {
+				if (class_exists($command)) {
+					$c = new $command();
+				} else {
+					throw new \Exception("Console command '$command' is unknown and could not be loaded");
+				}
+			}
+
+			$this->application->add($c);
+		}
 	}
 }

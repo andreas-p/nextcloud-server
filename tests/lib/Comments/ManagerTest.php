@@ -2,6 +2,9 @@
 
 namespace Test\Comments;
 
+use OC\Comments\Comment;
+use OCP\Comments\CommentsEvent;
+use OCP\Comments\ICommentsEventHandler;
 use OCP\Comments\ICommentsManager;
 use OCP\IUser;
 use Test\TestCase;
@@ -108,7 +111,7 @@ class ManagerTest extends TestCase {
 		$this->assertSame($comment->getVerb(), 'comment');
 		$this->assertSame($comment->getObjectType(), 'files');
 		$this->assertSame($comment->getObjectId(), 'file64');
-		$this->assertEquals($comment->getCreationDateTime(), $creationDT);
+		$this->assertEquals($comment->getCreationDateTime()->getTimestamp(), $creationDT->getTimestamp());
 		$this->assertEquals($comment->getLatestChildDateTime(), $latestChildDT);
 	}
 
@@ -355,7 +358,7 @@ class ManagerTest extends TestCase {
 
 	public function testSaveNew() {
 		$manager = $this->getManager();
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 		$comment
 			->setActor('users', 'alice')
 			->setObject('files', 'file64')
@@ -370,12 +373,12 @@ class ManagerTest extends TestCase {
 
 		$loadedComment = $manager->get($comment->getId());
 		$this->assertSame($comment->getMessage(), $loadedComment->getMessage());
-		$this->assertEquals($comment->getCreationDateTime(), $loadedComment->getCreationDateTime());
+		$this->assertEquals($comment->getCreationDateTime()->getTimestamp(), $loadedComment->getCreationDateTime()->getTimestamp());
 	}
 
 	public function testSaveUpdate() {
 		$manager = $this->getManager();
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 		$comment
 				->setActor('users', 'alice')
 				->setObject('files', 'file64')
@@ -396,7 +399,7 @@ class ManagerTest extends TestCase {
 	 */
 	public function testSaveUpdateException() {
 		$manager = $this->getManager();
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 		$comment
 				->setActor('users', 'alice')
 				->setObject('files', 'file64')
@@ -415,7 +418,7 @@ class ManagerTest extends TestCase {
 	 */
 	public function testSaveIncomplete() {
 		$manager = $this->getManager();
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 		$comment->setMessage('from no one to nothing');
 		$manager->save($comment);
 	}
@@ -426,7 +429,7 @@ class ManagerTest extends TestCase {
 		$manager = $this->getManager();
 
 		for($i = 0; $i < 3; $i++) {
-			$comment = new \OC\Comments\Comment();
+			$comment = new Comment();
 			$comment
 					->setActor('users', 'alice')
 					->setObject('files', 'file64')
@@ -441,7 +444,7 @@ class ManagerTest extends TestCase {
 			$this->assertSame($comment->getTopmostParentId(), strval($id));
 			$parentComment = $manager->get(strval($id));
 			$this->assertSame($parentComment->getChildrenCount(), $i + 1);
-			$this->assertEquals($parentComment->getLatestChildDateTime(), $comment->getCreationDateTime());
+			$this->assertEquals($parentComment->getLatestChildDateTime()->getTimestamp(), $comment->getCreationDateTime()->getTimestamp());
 		}
 	}
 
@@ -574,7 +577,7 @@ class ManagerTest extends TestCase {
 
 		$dateTimeGet = $manager->getReadMark('robot', '36',  $user);
 
-		$this->assertEquals($dateTimeGet, $dateTimeSet);
+		$this->assertEquals($dateTimeGet->getTimestamp(), $dateTimeSet->getTimestamp());
 	}
 
 	public function testSetMarkReadUpdate() {
@@ -628,6 +631,115 @@ class ManagerTest extends TestCase {
 		$dateTimeGet = $manager->getReadMark('robot', '36',  $user);
 
 		$this->assertNull($dateTimeGet);
+	}
+
+	public function testSendEvent() {
+		$handler1 = $this->getMockBuilder(ICommentsEventHandler::class)->getMock();
+		$handler1->expects($this->exactly(4))
+			->method('handle');
+
+		$handler2 = $this->getMockBuilder(ICommentsEventHandler::class)->getMock();
+		$handler1->expects($this->exactly(4))
+			->method('handle');
+
+		$manager = $this->getManager();
+		$manager->registerEventHandler(function () use ($handler1) {return $handler1; });
+		$manager->registerEventHandler(function () use ($handler2) {return $handler2; });
+
+		$comment = new Comment();
+		$comment
+			->setActor('users', 'alice')
+			->setObject('files', 'file64')
+			->setMessage('very beautiful, I am impressed!')
+			->setVerb('comment');
+
+		// Add event
+		$manager->save($comment);
+
+		// Update event
+		$comment->setMessage('Different topic');
+		$manager->save($comment);
+
+		// Delete event
+		$manager->delete($comment->getId());
+	}
+
+	public function testResolveDisplayName() {
+		$manager = $this->getManager();
+
+		$planetClosure = function($name) {
+			return ucfirst($name);
+		};
+
+		$galaxyClosure = function($name) {
+			return strtoupper($name);
+		};
+
+		$manager->registerDisplayNameResolver('planet', $planetClosure);
+		$manager->registerDisplayNameResolver('galaxy', $galaxyClosure);
+
+		$this->assertSame('Neptune', $manager->resolveDisplayName('planet', 'neptune'));
+		$this->assertSame('SOMBRERO', $manager->resolveDisplayName('galaxy', 'sombrero'));
+	}
+
+	/**
+	 * @expectedException \OutOfBoundsException
+	 */
+	public function testRegisterResolverDuplicate() {
+		$manager = $this->getManager();
+
+		$planetClosure = function($name) {
+			return ucfirst($name);
+		};
+		$manager->registerDisplayNameResolver('planet', $planetClosure);
+		$manager->registerDisplayNameResolver('planet', $planetClosure);
+	}
+
+	/**
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function testRegisterResolverInvalidType() {
+		$manager = $this->getManager();
+
+		$planetClosure = function($name) {
+			return ucfirst($name);
+		};
+		$manager->registerDisplayNameResolver(1337, $planetClosure);
+	}
+
+	/**
+	 * @expectedException \OutOfBoundsException
+	 */
+	public function testResolveDisplayNameUnregisteredType() {
+		$manager = $this->getManager();
+
+		$planetClosure = function($name) {
+			return ucfirst($name);
+		};
+
+		$manager->registerDisplayNameResolver('planet', $planetClosure);
+		$manager->resolveDisplayName('galaxy', 'sombrero');
+	}
+
+	public function testResolveDisplayNameDirtyResolver() {
+		$manager = $this->getManager();
+
+		$planetClosure = function() { return null; };
+
+		$manager->registerDisplayNameResolver('planet', $planetClosure);
+		$this->assertTrue(is_string($manager->resolveDisplayName('planet', 'neptune')));
+	}
+
+	/**
+	 * @expectedException \InvalidArgumentException
+	 */
+	public function testResolveDisplayNameInvalidType() {
+		$manager = $this->getManager();
+
+		$planetClosure = function() { return null; };
+
+		$manager->registerDisplayNameResolver('planet', $planetClosure);
+		$this->assertTrue(is_string($manager->resolveDisplayName(1337, 'neptune')));
 	}
 
 }

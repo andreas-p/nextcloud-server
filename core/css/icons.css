@@ -147,7 +147,10 @@ img.icon-loading-small-dark, object.icon-loading-small-dark, video.icon-loading-
 }
 
 .icon-confirm {
-	background-image: url('../img/actions/confirm.svg?v=1');
+	background-image: url('../img/actions/confirm.svg?v=2');
+}
+.icon-confirm-white {
+	background-image: url('../img/actions/confirm-white.svg?v=2');
 }
 
 .icon-delete,
@@ -190,6 +193,13 @@ img.icon-loading-small-dark, object.icon-loading-small-dark, video.icon-loading-
 
 .icon-external {
 	background-image: url('../img/actions/external.svg?v=1');
+}
+
+.icon-fullscreen {
+	background-image: url('../img/actions/fullscreen.svg?v=1');
+}
+.icon-fullscreen-white {
+	background-image: url('../img/actions/fullscreen-white.svg?v=1');
 }
 
 .icon-history {
@@ -282,6 +292,10 @@ img.icon-loading-small-dark, object.icon-loading-small-dark, video.icon-loading-
 	background-image: url('../img/actions/sound-off.svg?v=1');
 }
 
+.icon-favorite  {
+	background-image: url('../img/actions/star-dark.svg?v=1');
+}
+
 .icon-star,
 .icon-starred:hover,
 .icon-starred:focus {
@@ -364,6 +378,9 @@ img.icon-loading-small-dark, object.icon-loading-small-dark, video.icon-loading-
 
 .icon-files {
 	background-image: url('../img/places/files.svg?v=1');
+}
+.icon-files-dark {
+	background-image: url('../img/places/files-dark.svg?v=1');
 }
 .icon-file,
 .icon-filetype-text {

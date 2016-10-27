@@ -47,6 +47,7 @@
  *
  */
 use OC\App\DependencyAnalyzer;
+use OC\App\InfoParser;
 use OC\App\Platform;
 use OC\Installer;
 use OC\OCSClient;
@@ -333,9 +334,16 @@ class OC_App {
 	 * This function set an app as enabled in appconfig.
 	 */
 	public static function enable($app, $groups = null) {
-		self::$enabledAppsCache = array(); // flush
+		self::$enabledAppsCache = []; // flush
 		if (!Installer::isInstalled($app)) {
 			$app = self::installApp($app);
+		} else {
+			// check for required dependencies
+			$config = \OC::$server->getConfig();
+			$l = \OC::$server->getL10N('core');
+			$info = self::getAppInfo($app);
+
+			self::checkAppDependencies($config, $l, $info);
 		}
 
 		$appManager = \OC::$server->getAppManager();
@@ -662,15 +670,16 @@ class OC_App {
 	 * Read all app metadata from the info.xml file
 	 *
 	 * @param string $appId id of the app or the path of the info.xml file
-	 * @param boolean $path (optional)
+	 * @param bool $path
+	 * @param string $lang
 	 * @return array|null
 	 * @note all data is read from info.xml, not just pre-defined fields
 	 */
-	public static function getAppInfo($appId, $path = false) {
+	public static function getAppInfo($appId, $path = false, $lang = null) {
 		if ($path) {
 			$file = $appId;
 		} else {
-			if (isset(self::$appInfo[$appId])) {
+			if ($lang === null && isset(self::$appInfo[$appId])) {
 				return self::$appInfo[$appId];
 			}
 			$appPath = self::getAppPath($appId);
@@ -680,11 +689,11 @@ class OC_App {
 			$file = $appPath . '/appinfo/info.xml';
 		}
 
-		$parser = new \OC\App\InfoParser(\OC::$server->getURLGenerator());
+		$parser = new InfoParser(\OC::$server->getMemCacheFactory()->create('core.appinfo'));
 		$data = $parser->parse($file);
 
 		if (is_array($data)) {
-			$data = OC_App::parseAppInfo($data);
+			$data = OC_App::parseAppInfo($data, $lang);
 		}
 		if(isset($data['ocsid'])) {
 			$storedId = \OC::$server->getConfig()->getAppValue($appId, 'ocsid');
@@ -693,7 +702,9 @@ class OC_App {
 			}
 		}
 
-		self::$appInfo[$appId] = $data;
+		if ($lang === null) {
+			self::$appInfo[$appId] = $data;
+		}
 
 		return $data;
 	}
@@ -848,11 +859,13 @@ class OC_App {
 		$blacklist = \OC::$server->getAppManager()->getAlwaysEnabledApps();
 		$localTrustApps=OC_App::getAllApps(true);
 		$appList = array();
+		$langCode = \OC::$server->getL10N('core')->getLanguageCode();
+		$urlGenerator = \OC::$server->getURLGenerator();
 
 		foreach ($installedApps as $app) {
 			if (array_search($app, $blacklist) === false) {
 
-				$info = OC_App::getAppInfo($app);
+				$info = OC_App::getAppInfo($app, false, $langCode);
 				if (!is_array($info)) {
 					\OCP\Util::writeLog('core', 'Could not read app info file for app "' . $app . '"', \OCP\Util::ERROR);
 					continue;
@@ -905,6 +918,19 @@ class OC_App {
 						}
 					}
 				}
+				// fix documentation
+				if (isset($info['documentation']) && is_array($info['documentation'])) {
+					foreach ($info['documentation'] as $key => $url) {
+						// If it is not an absolute URL we assume it is a key
+						// i.e. admin-ldap will get converted to go.php?to=admin-ldap
+						if (stripos($url, 'https://') !== 0 && stripos($url, 'http://') !== 0) {
+							$url = $urlGenerator->linkToDocs($url);
+						}
+
+						$info['documentation'][$key] = $url;
+					}
+				}
+
 				$info['version'] = OC_App::getAppVersion($app);
 				$appList[] = $info;
 			}
@@ -1176,16 +1202,7 @@ class OC_App {
 			}
 
 			// check for required dependencies
-			$dependencyAnalyzer = new DependencyAnalyzer(new Platform($config), $l);
-			$missing = $dependencyAnalyzer->analyze($info);
-			if (!empty($missing)) {
-				$missingMsg = join(PHP_EOL, $missing);
-				throw new \Exception(
-					$l->t('App "%s" cannot be installed because the following dependencies are not fulfilled: %s',
-						array($info['name'], $missingMsg)
-					)
-				);
-			}
+			self::checkAppDependencies($config, $l, $info);
 
 			$config->setAppValue($app, 'enabled', 'yes');
 			if (isset($appData['id'])) {
@@ -1336,13 +1353,69 @@ class OC_App {
 		}
 	}
 
+	protected static function findBestL10NOption($options, $lang) {
+		$fallback = $similarLangFallback = $englishFallback = false;
+
+		$lang = strtolower($lang);
+		$similarLang = $lang;
+		if (strpos($similarLang, '_')) {
+			// For "de_DE" we want to find "de" and the other way around
+			$similarLang = substr($lang, 0, strpos($lang, '_'));
+		}
+
+		foreach ($options as $option) {
+			if (is_array($option)) {
+				if ($fallback === false) {
+					$fallback = $option['@value'];
+				}
+
+				if (!isset($option['@attributes']['lang'])) {
+					continue;
+				}
+
+				$attributeLang = strtolower($option['@attributes']['lang']);
+				if ($attributeLang === $lang) {
+					return $option['@value'];
+				}
+
+				if ($attributeLang === $similarLang) {
+					$similarLangFallback = $option['@value'];
+				} else if (strpos($attributeLang, $similarLang . '_') === 0) {
+					if ($similarLangFallback === false) {
+						$similarLangFallback =  $option['@value'];
+					}
+				}
+			} else {
+				$englishFallback = $option;
+			}
+		}
+
+		if ($similarLangFallback !== false) {
+			return $similarLangFallback;
+		} else if ($englishFallback !== false) {
+			return $englishFallback;
+		}
+		return (string) $fallback;
+	}
+
 	/**
 	 * parses the app data array and enhanced the 'description' value
 	 *
 	 * @param array $data the app data
+	 * @param string $lang
 	 * @return array improved app data
 	 */
-	public static function parseAppInfo(array $data) {
+	public static function parseAppInfo(array $data, $lang = null) {
+
+		if ($lang && isset($data['name']) && is_array($data['name'])) {
+			$data['name'] = self::findBestL10NOption($data['name'], $lang);
+		}
+		if ($lang && isset($data['summary']) && is_array($data['summary'])) {
+			$data['summary'] = self::findBestL10NOption($data['summary'], $lang);
+		}
+		if ($lang && isset($data['description']) && is_array($data['description'])) {
+			$data['description'] = self::findBestL10NOption($data['description'], $lang);
+		}
 
 		// just modify the description if it is available
 		// otherwise this will create a $data element with an empty 'description'
@@ -1371,5 +1444,24 @@ class OC_App {
 		}
 
 		return $data;
+	}
+
+	/**
+	 * @param $config
+	 * @param $l
+	 * @param $info
+	 * @throws Exception
+	 */
+	protected static function checkAppDependencies($config, $l, $info) {
+		$dependencyAnalyzer = new DependencyAnalyzer(new Platform($config), $l);
+		$missing = $dependencyAnalyzer->analyze($info);
+		if (!empty($missing)) {
+			$missingMsg = join(PHP_EOL, $missing);
+			throw new \Exception(
+				$l->t('App "%s" cannot be installed because the following dependencies are not fulfilled: %s',
+					[$info['name'], $missingMsg]
+				)
+			);
+		}
 	}
 }

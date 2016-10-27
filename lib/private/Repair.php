@@ -35,6 +35,8 @@ use OC\Repair\AvatarPermissions;
 use OC\Repair\CleanTags;
 use OC\Repair\Collation;
 use OC\Repair\DropOldJobs;
+use OC\Repair\MoveUpdaterStepFile;
+use OC\Repair\NC11\MoveAvatars;
 use OC\Repair\OldGroupMembershipShares;
 use OC\Repair\RemoveGetETagEntries;
 use OC\Repair\RemoveOldShares;
@@ -127,6 +129,7 @@ class Repair implements IOutput{
 	 */
 	public static function getRepairSteps() {
 		return [
+			new Collation(\OC::$server->getConfig(), \OC::$server->getLogger(), \OC::$server->getDatabaseConnection(), false),
 			new RepairMimeTypes(\OC::$server->getConfig()),
 			new RepairLegacyStorages(\OC::$server->getConfig(), \OC::$server->getDatabaseConnection()),
 			new AssetCache(),
@@ -146,6 +149,11 @@ class Repair implements IOutput{
 				\OC::$server->getDatabaseConnection(),
 				\OC::$server->getUserManager(),
 				\OC::$server->getGroupManager()
+			),
+			new MoveUpdaterStepFile(\OC::$server->getConfig()),
+			new MoveAvatars(
+				\OC::$server->getJobList(),
+				\OC::$server->getSystemConfig()
 			),
 		];
 	}
@@ -172,7 +180,7 @@ class Repair implements IOutput{
 		$connection = \OC::$server->getDatabaseConnection();
 		$steps = [
 			new InnoDB(),
-			new Collation(\OC::$server->getConfig(), $connection),
+			new Collation(\OC::$server->getConfig(), \OC::$server->getLogger(), $connection, true),
 			new SqliteAutoincrement($connection),
 			new SearchLuceneTables(),
 		];

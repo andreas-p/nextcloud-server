@@ -53,9 +53,9 @@ trait WebDav {
 	/**
 	 * @return string
 	 */
-	public function getFilesPath() {
-		if ($this->davPath === 'remote.php/dav') {
-			$basePath = '/files/' . $this->currentUser . '/';
+	public function getFilesPath($user) {
+		if ($this->davPath === "remote.php/dav") {
+			$basePath = '/files/' . $user . '/';
 		} else {
 			$basePath = '/';
 		}
@@ -262,12 +262,13 @@ trait WebDav {
 	/**
 	 * @Then /^as "([^"]*)" the (file|folder|entry) "([^"]*)" does not exist$/
 	 * @param string $user
+	 * @param string $entry
 	 * @param string $path
 	 * @param \Behat\Gherkin\Node\TableNode|null $propertiesTable
 	 */
 	public function asTheFileOrFolderDoesNotExist($user, $entry, $path) {
 		$client = $this->getSabreClient($user);
-		$response = $client->request('HEAD', $this->makeSabrePath($path));
+		$response = $client->request('HEAD', $this->makeSabrePath($user, $path));
 		if ($response['statusCode'] !== 404) {
 			throw new \Exception($entry . ' "' . $path . '" expected to not exist (status code ' . $response['statusCode'] . ', expected 404)');
 		}
@@ -278,8 +279,8 @@ trait WebDav {
 	/**
 	 * @Then /^as "([^"]*)" the (file|folder|entry) "([^"]*)" exists$/
 	 * @param string $user
+	 * @param string $entry
 	 * @param string $path
-	 * @param \Behat\Gherkin\Node\TableNode|null $propertiesTable
 	 */
 	public function asTheFileOrFolderExists($user, $entry, $path) {
 		$this->response = $this->listFolder($user, $path, 0);
@@ -362,13 +363,13 @@ trait WebDav {
 			];
 		}
 
-		$response = $client->propfind($this->makeSabrePath($path), $properties, $folderDepth);
+		$response = $client->propfind($this->makeSabrePath($user, $path), $properties, $folderDepth);
 
 		return $response;
 	}
 
-	public function makeSabrePath($path) {
-		return $this->encodePath($this->davPath . '/' . ltrim($path, '/'));
+	public function makeSabrePath($user, $path) {
+		return $this->encodePath($this->davPath . $this->getFilesPath($user) . ltrim($path, '/'));
 	}
 
 	public function getSabreClient($user) {
@@ -425,6 +426,21 @@ trait WebDav {
 	}
 
 	/**
+	 * @When User :user adds a file of :bytes bytes to :destination
+	 * @param string $user
+	 * @param string $bytes
+	 * @param string $destination
+	 */
+	public function userAddsAFileTo($user, $bytes, $destination){
+		$filename = "filespecificSize.txt";
+		$this->createFileSpecificSize($filename, $bytes);
+		PHPUnit_Framework_Assert::assertEquals(1, file_exists("data/$filename"));
+		$this->userUploadsAFileTo($user, "data/$filename", $destination);
+		$this->removeFile("data/", $filename);
+		PHPUnit_Framework_Assert::assertEquals(1, file_exists("../../data/$user/files$destination"));
+	}
+
+	/**
 	 * @When User :user uploads file with content :content to :destination
 	 */
 	public function userUploadsAFileWithContentTo($user, $content, $destination)
@@ -439,11 +455,12 @@ trait WebDav {
 	}
 
 	/**
-	 * @When User :user deletes file :file
+	 * @When /^User "([^"]*)" deletes (file|folder) "([^"]*)"$/
 	 * @param string $user
+	 * @param string $type
 	 * @param string $file
 	 */
-	public function userDeletesFile($user, $file)  {
+	public function userDeletesFile($user, $type, $file)  {
 		try {
 			$this->response = $this->makeDavRequest($user, 'DELETE', $file, []);
 		} catch (\GuzzleHttp\Exception\ServerException $e) {
@@ -459,7 +476,7 @@ trait WebDav {
 	 */
 	public function userCreatedAFolder($user, $destination) {
 		try {
-			$this->response = $this->makeDavRequest($user, "MKCOL", $this->getFilesPath() . ltrim($destination, $this->getFilesPath()), []);
+			$this->response = $this->makeDavRequest($user, "MKCOL", $this->getFilesPath($user) . ltrim($destination, $this->getFilesPath($user)), []);
 		} catch (\GuzzleHttp\Exception\ServerException $e) {
 			// 4xx and 5xx responses cause an exception
 			$this->response = $e->getResponse();
@@ -569,7 +586,7 @@ trait WebDav {
 			];
 		}
 
-		$response = $client->proppatch($this->davPath . '/' . ltrim($path, '/'), $properties, $folderDepth);
+		$response = $client->proppatch($this->davPath . $this->getFilesPath($user) . ltrim($path, '/'), $properties, $folderDepth);
 		return $response;
 	}
 

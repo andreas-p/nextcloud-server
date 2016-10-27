@@ -30,9 +30,37 @@ input#openid, input#webdav { width:20em; }
 }
 #avatar #cropper {
 	float: left;
-	background-color: #fff;
 	z-index: 500;
-	position: relative;
+	/* float cropper above settings page to prevent unexpected flowing from dynamically sized element */
+	position: fixed;
+	background-color: rgba(0, 0, 0, .2);
+	box-sizing: border-box;
+	top: 45px;
+	left: 0;
+	width: 100%;
+	height: calc(100% - 45px);
+}
+#avatar #cropper .inner-container {
+	z-index: 2001; /* above the top bar if needed */
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background: #fff;
+	color: #333;
+	border-radius: 3px;
+	box-shadow: 0 0 7px #888;
+	padding: 15px;
+}
+
+#avatar #cropper .inner-container .jcrop-holder {
+	box-shadow: 0 0 7px #888;
+}
+#avatar #cropper .inner-container .button {
+	margin-top: 15px;
+}
+#avatar #cropper .inner-container .primary {
+	float: right;
 }
 
 #displaynameform,
@@ -94,6 +122,10 @@ input#identity {
 	color: #fff;
 	background-color: #d2322d;
 	padding: 3px;
+}
+
+.password-state {
+	display: inline-block;
 }
 
 table.nostyle label { margin-right: 2em; }
@@ -180,17 +212,23 @@ table.nostyle td { padding: 0.2em 0; }
 	height: 44px;
 }
 #newgroupname {
-	margin: 6px;
-	width: 95%;
-	padding-right: 32px;
-	box-sizing: border-box
+	margin: 0;
+	width: 100%;
+	padding: 12px 40px 12px 12px;
+	box-sizing: border-box;
+	background-color: transparent;
+	border: none;
+	border-bottom: 1px solid #eee;
+	border-radius: 0;
 }
 #newgroup-form .button {
 	position: absolute;
 	right: 0;
-	top: 3px;
-	height: 32px;
-	width: 32px;
+	top: 0;
+	padding: 10px 20px;
+	background-color: transparent;
+	border: none;
+	opacity: .5;
 }
 
 .isgroup .groupname {
@@ -235,8 +273,17 @@ table.grid {
 	width: 100%;
 }
 
-table.grid th { height:2em; color:#999; }
-table.grid th, table.grid td { border-bottom:1px solid #ddd; padding:0 .5em; padding-left:.8em; text-align:left; font-weight:normal; }
+table.grid th {
+	height: 2em;
+	color: #999;
+}
+table.grid th, table.grid td {
+	border-bottom: 1px solid #eee;
+	padding: 0 .5em;
+	padding-left: .8em;
+	text-align: left;
+	font-weight: normal;
+}
 td.name, td.password { padding-left:.8em; }
 td.password>img,td.displayName>img, td.remove>a, td.quota>img { visibility:hidden; }
 td.password, td.quota, td.displayName { width:12em; cursor:pointer; }
@@ -256,7 +303,12 @@ span.usersLastLoginTooltip { white-space: nowrap; }
 
 /* because of accessibility the name cell is <th> - therefore we enforce the black color */
 #userlist th.name {
-	color: #000000;
+	color: #000;
+}
+
+/* use same height as in files app */
+#userlist tr {
+	height: 51px;
 }
 
 #userlist .mailAddress .loading-small {
@@ -386,12 +438,22 @@ span.version {
 #apps-list {
 	position: relative;
 	height: 100%;
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
 }
-.section {
+#apps-list .section {
 	position: relative;
+	flex: 1 0 330px;
+	margin: 0;
+	padding-right: 50px;
+}
+#apps-list .section.apps-experimental {
+	flex-basis: 90%;
 }
 .section h2.app-name {
 	margin-bottom: 8px;
+	display: inline;
 }
 .followupsection {
 	display: block;
@@ -641,13 +703,4 @@ doesnotexist:-o-prefocus, .strengthify-wrapper {
 
 #warning {
 	color: red;
-}
-
-/* SELECT */
-
-.select2-container-multi .select2-choices .select2-search-choice {
-	background-color: rgba(240,240,240,.9)!important;
-	border-color: rgba(240,240,240,.9)!important;
-	box-shadow: none!important;
-	background-image: none!important;
 }

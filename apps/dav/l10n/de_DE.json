@@ -1,0 +1,9 @@
+{ "translations": {
+    "Contact birthdays" : "Geburtstage von Kontakten",
+    "Personal" : "Persönlich",
+    "Contacts" : "Kontakte",
+    "Technical details" : "Technische Details",
+    "Remote Address: %s" : "Entfernte Adresse: %s",
+    "Request ID: %s" : "Anfragekennung: %s"
+},"pluralForm" :"nplurals=2; plural=(n != 1);"
+}

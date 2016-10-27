@@ -2,16 +2,18 @@
 
 namespace Test\Comments;
 
+use OC\Comments\Comment;
 use OCP\Comments\IComment;
 use Test\TestCase;
 
 class CommentTest extends TestCase {
 
 	public function testSettersValidInput() {
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 
 		$id = 'comment23';
 		$parentId = 'comment11.5';
+		$topMostParentId = 'comment11.0';
 		$childrenCount = 6;
 		$message = 'I like to comment comment';
 		$verb = 'comment';
@@ -23,6 +25,7 @@ class CommentTest extends TestCase {
 		$comment
 			->setId($id)
 			->setParentId($parentId)
+			->setTopmostParentId($topMostParentId)
 			->setChildrenCount($childrenCount)
 			->setMessage($message)
 			->setVerb($verb)
@@ -33,6 +36,7 @@ class CommentTest extends TestCase {
 
 		$this->assertSame($id, $comment->getId());
 		$this->assertSame($parentId, $comment->getParentId());
+		$this->assertSame($topMostParentId, $comment->getTopmostParentId());
 		$this->assertSame($childrenCount, $comment->getChildrenCount());
 		$this->assertSame($message, $comment->getMessage());
 		$this->assertSame($verb, $comment->getVerb());
@@ -48,14 +52,14 @@ class CommentTest extends TestCase {
 	 * @expectedException \OCP\Comments\IllegalIDChangeException
 	 */
 	public function testSetIdIllegalInput() {
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 
 		$comment->setId('c23');
 		$comment->setId('c17');
 	}
 
 	public function testResetId() {
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 		$comment->setId('c23');
 		$comment->setId('');
 
@@ -65,6 +69,7 @@ class CommentTest extends TestCase {
 	public function simpleSetterProvider() {
 		return [
 			['Id', true],
+			['TopmostParentId', true],
 			['ParentId', true],
 			['Message', true],
 			['Verb', true],
@@ -78,7 +83,7 @@ class CommentTest extends TestCase {
 	 * @expectedException \InvalidArgumentException
 	 */
 	public function testSimpleSetterInvalidInput($field, $input) {
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 		$setter = 'set' . $field;
 
 		$comment->$setter($input);
@@ -102,7 +107,7 @@ class CommentTest extends TestCase {
 	 * @expectedException \InvalidArgumentException
 	 */
 	public function testSetRoleInvalidInput($role, $type, $id){
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 		$setter = 'set' . $role;
 		$comment->$setter($type, $id);
 	}
@@ -111,9 +116,53 @@ class CommentTest extends TestCase {
 	 * @expectedException \OCP\Comments\MessageTooLongException
 	 */
 	public function testSetUberlongMessage() {
-		$comment = new \OC\Comments\Comment();
+		$comment = new Comment();
 		$msg = str_pad('', IComment::MAX_MESSAGE_LENGTH + 1, 'x');
 		$comment->setMessage($msg);
+	}
+
+	public function mentionsProvider() {
+		return [
+			[
+				'@alice @bob look look, a cook!', ['alice', 'bob']
+			],
+			[
+				'no mentions in this message', []
+			],
+			[
+				'@alice @bob look look, a duplication @alice test @bob!', ['alice', 'bob']
+			],
+			[
+				'@alice is the author, but notify @bob!', ['bob'], 'alice'
+			],
+			[
+				'@foobar and @barfoo you should know, @foo@bar.com is valid' .
+					' and so is @bar@foo.org@foobar.io I hope that clarifies everything.' .
+					' cc @23452-4333-54353-2342 @yolo!',
+				['foobar', 'barfoo', 'foo@bar.com', 'bar@foo.org@foobar.io', '23452-4333-54353-2342', 'yolo']
+			]
+
+		];
+	}
+
+	/**
+	 * @dataProvider mentionsProvider
+	 */
+	public function testMentions($message, $expectedUids, $author = null) {
+		$comment = new Comment();
+		$comment->setMessage($message);
+		if(!is_null($author)) {
+			$comment->setActor('user', $author);
+		}
+		$mentions = $comment->getMentions();
+		while($mention = array_shift($mentions)) {
+			$uid = array_shift($expectedUids);
+			$this->assertSame('user', $mention['type']);
+			$this->assertSame($uid, $mention['id']);
+			$this->assertNotSame($author, $mention['id']);
+		}
+		$this->assertEmpty($mentions);
+		$this->assertEmpty($expectedUids);
 	}
 
 

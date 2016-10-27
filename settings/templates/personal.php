@@ -50,8 +50,10 @@
 	</div>
 
 	<div id="cropper" class="hidden">
-		<div class="inlineblock button" id="abortcropperbutton"><?php p($l->t('Cancel')); ?></div>
-		<div class="inlineblock button primary" id="sendcropperbutton"><?php p($l->t('Choose as profile picture')); ?></div>
+		<div class="inner-container">
+			<div class="inlineblock button" id="abortcropperbutton"><?php p($l->t('Cancel')); ?></div>
+			<div class="inlineblock button primary" id="sendcropperbutton"><?php p($l->t('Choose as profile picture')); ?></div>
+		</div>
 	</div>
 </form>
 <?php endif; ?>
@@ -129,7 +131,7 @@ if($_['passwordChangeSupported']) {
 		placeholder="<?php echo $l->t('New password');?>"
 		data-typetoggle="#personal-show"
 		autocomplete="off" autocapitalize="off" autocorrect="off" />
-	<input type="checkbox" id="personal-show" name="show" /><label for="personal-show"></label>
+	<input type="checkbox" id="personal-show" name="show" /><label for="personal-show" class="personal-show-label"></label>
 	<input id="passwordbutton" type="submit" value="<?php echo $l->t('Change password');?>" />
 	<br/>
 </form>

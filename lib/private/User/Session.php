@@ -362,6 +362,9 @@ class Session implements IUserSession, Emitter {
 		$user = $this->manager->get($username);
 		if (is_null($user)) {
 			$users = $this->manager->getByEmail($username);
+			if (empty($users)) {
+				return false;
+			}
 			if (count($users) !== 1) {
 				return true;
 			}
@@ -597,7 +600,6 @@ class Session implements IUserSession, Emitter {
 			}
 
 			$dbToken->setLastCheck($now);
-			$this->tokenProvider->updateToken($dbToken);
 			return true;
 		}
 
@@ -608,7 +610,6 @@ class Session implements IUserSession, Emitter {
 			return false;
 		}
 		$dbToken->setLastCheck($now);
-		$this->tokenProvider->updateToken($dbToken);
 		return true;
 	}
 

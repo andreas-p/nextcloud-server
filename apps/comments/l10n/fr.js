@@ -1,13 +1,13 @@
 OC.L10N.register(
     "comments",
     {
+    "Comments" : "Commentaires",
     "New comment …" : "Nouveau commentaire...",
     "Delete comment" : "Supprimer le commentaire",
     "Post" : "Poster",
     "Cancel" : "Annuler",
     "Edit comment" : "Modifier le commentaire",
     "[Deleted user]" : "[Utilisateur supprimé]",
-    "Comments" : "Commentaires",
     "No comments yet, start the conversation!" : "Il n'y a aucun commentaire, démarrer la conversation!",
     "More comments …" : "Plus de commentaires ...",
     "Save" : "Enregistrer",
@@ -15,7 +15,7 @@ OC.L10N.register(
     "Error occurred while retrieving comment with id {id}" : "Une erreur est survenue lors de la récupération du commentaire avec l'id {id}",
     "Error occurred while updating comment with id {id}" : "Une erreur est survenue lors de la mise à jour du commentaire avec l'id {id}",
     "Error occurred while posting comment" : "Une erreur est survenue lors de l'envoi du commentaire",
-    "{count} unread comments" : "{count} commentaires non lus",
+    "_%n unread comment_::_%n unread comments_" : ["%n commentaire non lu","%n commentaires non lus"],
     "Comment" : "Commenter",
     "<strong>Comments</strong> for files" : "<strong>Commentaires</strong> pour les fichiers",
     "You commented" : "Vous avez commenté",
@@ -24,6 +24,7 @@ OC.L10N.register(
     "%1$s commented on %2$s" : "%1$s a commenté %2$s",
     "Type in a new comment..." : "Écrire un nouveau commentaire...",
     "No other comments available" : "Aucun autre commentaire",
-    "More comments..." : "Plus de commentaires..."
+    "More comments..." : "Plus de commentaires...",
+    "{count} unread comments" : "{count} commentaires non lus"
 },
 "nplurals=2; plural=(n > 1);");

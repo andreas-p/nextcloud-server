@@ -123,7 +123,7 @@ class FilesPluginTest extends TestCase {
 	 * @param string $class
 	 * @return \PHPUnit_Framework_MockObject_MockObject
 	 */
-	private function createTestNode($class) {
+	private function createTestNode($class, $path = '/dummypath') {
 		$node = $this->getMockBuilder($class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -134,7 +134,7 @@ class FilesPluginTest extends TestCase {
 
 		$this->tree->expects($this->any())
 			->method('getNodeForPath')
-			->with('/dummypath')
+			->with($path)
 			->will($this->returnValue($node));
 
 		$node->expects($this->any())
@@ -215,58 +215,6 @@ class FilesPluginTest extends TestCase {
 		$this->assertEquals('M. Foo', $propFind->get(self::OWNER_DISPLAY_NAME_PROPERTYNAME));
 		$this->assertEquals('my_fingerprint', $propFind->get(self::DATA_FINGERPRINT_PROPERTYNAME));
 		$this->assertEquals([self::SIZE_PROPERTYNAME], $propFind->get404Properties());
-	}
-
-	public function testGetPropertiesForFileHome() {
-		/** @var \OCA\DAV\Files\FilesHome | \PHPUnit_Framework_MockObject_MockObject $node */
-		$node = $this->getMockBuilder('\OCA\DAV\Files\FilesHome')
-			->disableOriginalConstructor()
-			->getMock();
-
-		$propFind = new PropFind(
-			'/dummyPath',
-			array(
-				self::GETETAG_PROPERTYNAME,
-				self::FILEID_PROPERTYNAME,
-				self::INTERNAL_FILEID_PROPERTYNAME,
-				self::SIZE_PROPERTYNAME,
-				self::PERMISSIONS_PROPERTYNAME,
-				self::DOWNLOADURL_PROPERTYNAME,
-				self::OWNER_ID_PROPERTYNAME,
-				self::OWNER_DISPLAY_NAME_PROPERTYNAME,
-				self::DATA_FINGERPRINT_PROPERTYNAME,
-			),
-			0
-		);
-
-		$user = $this->getMockBuilder('\OC\User\User')
-			->disableOriginalConstructor()->getMock();
-		$user->expects($this->never())->method('getUID');
-		$user->expects($this->never())->method('getDisplayName');
-
-		$this->plugin->handleGetProperties(
-			$propFind,
-			$node
-		);
-
-		$this->assertEquals(null, $propFind->get(self::GETETAG_PROPERTYNAME));
-		$this->assertEquals(null, $propFind->get(self::FILEID_PROPERTYNAME));
-		$this->assertEquals(null, $propFind->get(self::INTERNAL_FILEID_PROPERTYNAME));
-		$this->assertEquals(null, $propFind->get(self::SIZE_PROPERTYNAME));
-		$this->assertEquals(null, $propFind->get(self::PERMISSIONS_PROPERTYNAME));
-		$this->assertEquals(null, $propFind->get(self::DOWNLOADURL_PROPERTYNAME));
-		$this->assertEquals(null, $propFind->get(self::OWNER_ID_PROPERTYNAME));
-		$this->assertEquals(null, $propFind->get(self::OWNER_DISPLAY_NAME_PROPERTYNAME));
-		$this->assertEquals(['{DAV:}getetag',
-					'{http://owncloud.org/ns}id',
-					'{http://owncloud.org/ns}fileid',
-					'{http://owncloud.org/ns}size',
-					'{http://owncloud.org/ns}permissions',
-					'{http://owncloud.org/ns}downloadURL',
-					'{http://owncloud.org/ns}owner-id',
-					'{http://owncloud.org/ns}owner-display-name'
-				], $propFind->get404Properties());
-		$this->assertEquals('my_fingerprint', $propFind->get(self::DATA_FINGERPRINT_PROPERTYNAME));
 	}
 
 	public function testGetPropertiesStorageNotAvailable() {
@@ -598,5 +546,86 @@ class FilesPluginTest extends TestCase {
 		);
 
 		$this->assertEquals("false", $propFind->get(self::HAS_PREVIEW_PROPERTYNAME));
+	}
+
+	public function postCreateFileProvider() {
+		$baseUrl = 'http://example.com/owncloud/remote.php/webdav/subdir/';
+		return [
+			['test.txt', 'some file.txt', 'some file.txt', $baseUrl . 'some%20file.txt'],
+			['some file.txt', 'some file.txt', 'some file (2).txt', $baseUrl . 'some%20file%20%282%29.txt'],
+		];
+	}
+
+	/**
+	 * @dataProvider postCreateFileProvider
+	 */
+	public function testPostWithAddMember($existingFile, $wantedName, $deduplicatedName, $expectedLocation) {
+		$request = $this->getMock('Sabre\HTTP\RequestInterface');
+		$response = $this->getMock('Sabre\HTTP\ResponseInterface');
+
+		$request->expects($this->any())
+			->method('getUrl')
+			->will($this->returnValue('http://example.com/owncloud/remote.php/webdav/subdir/&' . $wantedName));
+
+		$request->expects($this->any())
+			->method('getPath')
+			->will($this->returnValue('/subdir/&' . $wantedName));
+
+		$request->expects($this->once())
+			->method('getBodyAsStream')
+			->will($this->returnValue(fopen('data://text/plain,hello', 'r')));
+
+		$this->view->expects($this->any())
+			->method('file_exists')
+			->will($this->returnCallback(function($path) use ($existingFile) {
+				return ($path === '/subdir/' . $existingFile);
+			}));
+
+		$node = $this->createTestNode('\OCA\DAV\Connector\Sabre\Directory', '/subdir');
+
+		$node->expects($this->once())
+			->method('createFile')
+			->with($deduplicatedName, $this->isType('resource'));
+
+		$response->expects($this->once())
+			->method('setStatus')
+			->with(201);
+		$response->expects($this->once())
+			->method('setHeader')
+			->with('Content-Location', $expectedLocation);
+
+		$this->assertFalse($this->plugin->httpPost($request, $response));
+	}
+
+	public function testPostOnNonDirectory() {
+		$request = $this->getMock('Sabre\HTTP\RequestInterface');
+		$response = $this->getMock('Sabre\HTTP\ResponseInterface');
+
+		$request->expects($this->any())
+			->method('getPath')
+			->will($this->returnValue('/subdir/test.txt/&abc'));
+
+		$this->createTestNode('\OCA\DAV\Connector\Sabre\File', '/subdir/test.txt');
+
+		$this->assertNull($this->plugin->httpPost($request, $response));
+	}
+
+	/**
+	 * @expectedException \Sabre\DAV\Exception\BadRequest
+	 */
+	public function testPostWithoutAddMember() {
+		$request = $this->getMock('Sabre\HTTP\RequestInterface');
+		$response = $this->getMock('Sabre\HTTP\ResponseInterface');
+
+		$request->expects($this->any())
+			->method('getPath')
+			->will($this->returnValue('/subdir/&'));
+
+		$node = $this->createTestNode('\OCA\DAV\Connector\Sabre\Directory', '/subdir');
+
+		$node->expects($this->never())
+			->method('createFile');
+
+		$this->plugin->httpPost($request, $response);
 	}
 }

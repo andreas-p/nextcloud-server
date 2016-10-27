@@ -286,32 +286,10 @@ body {
 	margin: -13px;
 }
 
-/* position log in button as confirm icon in right of password field */
-#body-login #submit.login {
-	position: absolute;
-	right: 0;
-	top: 0;
-	border: none;
-	background-color: transparent;
-	-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=30)";
-	opacity: .3;
-}
-#body-login #submit.login:hover,
-#body-login #submit.login:focus {
-	-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
-	opacity: .7;
-}
-#body-login input[type="password"],
-#body-login input[name="adminpass-clone"] {
-	padding-right: 40px;
-	box-sizing: border-box;
-	min-width: 269px;
-}
-
 #body-login form {
 	position: relative;
 	width: 280px;
-	margin: 32px auto;
+	margin: 16px auto;
 	padding: 0;
 }
 #body-login form fieldset {
@@ -420,7 +398,6 @@ label.infield {
 	position: relative;
 	margin: 0;
 	padding: 14px;
-	padding-left: 28px;
 	vertical-align: middle;
 	-webkit-user-select: none;
 	-moz-user-select: none;
@@ -442,6 +419,8 @@ label.infield {
 
 #body-login #remember_login:hover+label,
 #body-login #remember_login:focus+label,
+#body-login #forgot-password:hover,
+#body-login #forgot-password:focus,
 #body-login p.info a:hover,
 #body-login p.info a:focus  {
 	opacity: .6;
@@ -490,8 +469,9 @@ label.infield {
 }
 #personal-show + label {
 	height: 14px;
-	margin-top: 14px;
-	margin-left: -36px;
+	margin-top: -25px;
+	left: 295px;
+	display: block;
 }
 #passwordbutton {
 	margin-left: .5em;
@@ -616,8 +596,8 @@ label.infield {
 	width: 249px;
 }
 #body-login input.login {
-	width: auto;
-	float: right;
+	width: 269px;
+	background-position: right 16px center;
 }
 #body-login input[type="submit"] {
 	padding: 10px 20px; /* larger log in and installation buttons */
@@ -626,8 +606,15 @@ label.infield {
 	margin: 18px 5px 0 16px !important;
 }
 #body-login .remember-login-container {
-	margin-top: 10px;
+	display: inline-block;
+	margin: 10px 0;
 	text-align: center;
+	width: 100%;
+}
+#body-login #forgot-password {
+	padding: 11px;
+	float: right;
+	color: #fff;
 }
 
 /* Sticky footer */
@@ -773,43 +760,70 @@ a.bookmarklet { background-color:#ddd; border:1px solid #ccc; padding:5px;paddin
 .ui-datepicker-prev,.ui-datepicker-next{ border:1px solid #ddd; background:#fff; }
 
 /* ---- DIALOGS ---- */
-#oc-dialog-filepicker-content .dirtree {width:92%; overflow:hidden; }
-#oc-dialog-filepicker-content .dirtree .home {
+#oc-dialog-filepicker-content .dirtree {
+	width:92%;
+	float: left;
+	margin-left: 15px;
+	overflow:hidden;
+}
+#oc-dialog-filepicker-content .dirtree div:first-child a {
 	background-image:url('../img/places/home.svg?v=1');
 	background-repeat:no-repeat;
 	background-position: left center;
-	width: 30px;
-	display: inline-block;
 }
 #oc-dialog-filepicker-content .dirtree span:not(:last-child) { cursor: pointer; }
 #oc-dialog-filepicker-content .dirtree span:last-child { font-weight: bold; }
 #oc-dialog-filepicker-content .dirtree span:not(:last-child)::after { content: '>'; padding: 3px;}
+#oc-dialog-filepicker-content .filelist-container {
+	box-sizing: border-box;
+	display: inline-block;
+	overflow-y: auto;
+	height: 321px;
+	width: 100%;
+	padding-bottom: 55px;
+}
+
+#oc-dialog-filepicker-content .emptycontent {
+	color: #888;
+	text-align: center;
+	margin-top: 80px;
+	width: 100%;
+	display: none;
+}
 #oc-dialog-filepicker-content .filelist {
-	overflow-y:auto;
-	height: 300px;
 	background-color:white;
 	width:100%;
 }
-#oc-dialog-filepicker-content .filelist li {
-	position: relative;
+#oc-dialog-filepicker-content #filestable.filelist {
+	/* prevent the filepicker to overflow */
+	min-width: initial;
+}
+
+#oc-dialog-filepicker-content .filelist td {
+	padding: 14px;
+	border-bottom: 1px solid #eee;
+}
+#oc-dialog-filepicker-content .filelist tr:last-child td {
+	border-bottom: none;
 }
 #oc-dialog-filepicker-content .filelist .filename {
-	position: absolute;
-	top: 8px;
-	max-width: 60%;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
+	background-size: 32px;
+	background-repeat: no-repeat;
+	padding-left: 51px;
+	background-position: 7px 7px;
+	cursor: pointer;
 }
-#oc-dialog-filepicker-content .filelist img {
-	margin: 2px 1em 0 4px;
-	width: 32px;
-}
+
+#oc-dialog-filepicker-content .filelist .filesize,
 #oc-dialog-filepicker-content .filelist .date {
-	float: right;
-	margin-right: 10px;
-	margin-top: 0;
-	padding-top: 9px;
+	width: 80px;
+}
+
+#oc-dialog-filepicker-content .filelist .filesize {
+	text-align: right;
 }
 #oc-dialog-filepicker-content .filepicker_element_selected { background-color:lightblue;}
 .ui-dialog {position:fixed !important;}

@@ -29,7 +29,7 @@
 
 try {
 
-	require_once 'lib/base.php';
+	require_once __DIR__ . '/lib/base.php';
 
 	$systemConfig = \OC::$server->getSystemConfig();
 
@@ -41,6 +41,7 @@ try {
 	$values=array(
 		'installed'=>$installed,
 		'maintenance' => $maintenance,
+		'needsDbUpgrade' => \OCP\Util::needUpgrade(),
 		'version'=>implode('.', \OCP\Util::getVersion()),
 		'versionstring'=>OC_Util::getVersionString(),
 		'edition'=> '',

@@ -73,6 +73,7 @@ use OC\Security\Bruteforce\Throttler;
 use OC\Security\CertificateManager;
 use OC\Security\CSP\ContentSecurityPolicyManager;
 use OC\Security\Crypto;
+use OC\Security\CSP\ContentSecurityPolicyNonceManager;
 use OC\Security\CSRF\CsrfTokenGenerator;
 use OC\Security\CSRF\CsrfTokenManager;
 use OC\Security\CSRF\TokenStorage\SessionStorage;
@@ -175,10 +176,10 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('SystemTagObjectMapper', function (Server $c) {
 			return $c->query('SystemTagManagerFactory')->getObjectMapper();
 		});
-		$this->registerService('RootFolder', function () {
+		$this->registerService('RootFolder', function (Server $c) {
 			$manager = \OC\Files\Filesystem::getMountManager(null);
 			$view = new View();
-			$root = new Root($manager, $view, null);
+			$root = new Root($manager, $view, null, $c->getUserMountCache());
 			$connector = new HookConnector($root, $view);
 			$connector->viewToNode();
 			return $root;
@@ -359,7 +360,7 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('AvatarManager', function (Server $c) {
 			return new AvatarManager(
 				$c->getUserManager(),
-				$c->getRootFolder(),
+				$c->getAppDataDir('avatar'),
 				$c->getL10N('lib'),
 				$c->getLogger(),
 				$c->getConfig()
@@ -407,8 +408,8 @@ class Server extends ServerContainer implements IServerContainer {
 			return new CredentialsManager($c->getCrypto(), $c->getDatabaseConnection());
 		});
 		$this->registerService('DatabaseConnection', function (Server $c) {
-			$factory = new \OC\DB\ConnectionFactory();
 			$systemConfig = $c->getSystemConfig();
+			$factory = new \OC\DB\ConnectionFactory($c->getConfig());
 			$type = $systemConfig->getValue('dbtype', 'sqlite');
 			if (!$factory->isValidType($type)) {
 				throw new \OC\DatabaseException('Invalid database type');
@@ -708,6 +709,12 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('ContentSecurityPolicyManager', function (Server $c) {
 			return new ContentSecurityPolicyManager();
 		});
+		$this->registerService('ContentSecurityPolicyNonceManager', function(Server $c) {
+			return new ContentSecurityPolicyNonceManager(
+				$c->getCsrfTokenManager(),
+				$c->getRequest()
+			);
+		});
 		$this->registerService('ShareManager', function(Server $c) {
 			$config = $c->getConfig();
 			$factoryClass = $config->getSystemValue('sharing.managerFactory', '\OC\Share20\ProviderFactory');
@@ -741,6 +748,12 @@ class Server extends ServerContainer implements IServerContainer {
 				$c->getLockingProvider()
 			);
 			return $manager;
+		});
+		$this->registerService(\OC\Files\AppData\Factory::class, function (Server $c) {
+			return new \OC\Files\AppData\Factory(
+				$c->getRootFolder(),
+				$c->getSystemConfig()
+			);
 		});
 	}
 
@@ -876,6 +889,7 @@ class Server extends ServerContainer implements IServerContainer {
 	 * Returns an app-specific view in ownClouds data directory
 	 *
 	 * @return \OCP\Files\Folder
+	 * @deprecated since 9.2.0 use IAppData
 	 */
 	public function getAppFolder() {
 		$dir = '/' . \OC_App::getCurrentApp();
@@ -1399,6 +1413,13 @@ class Server extends ServerContainer implements IServerContainer {
 	}
 
 	/**
+	 * @return ContentSecurityPolicyNonceManager
+	 */
+	public function getContentSecurityPolicyNonceManager() {
+		return $this->query('ContentSecurityPolicyNonceManager');
+	}
+
+	/**
 	 * Not a public API as of 8.2, wait for 9.0
 	 *
 	 * @return \OCA\Files_External\Service\BackendService
@@ -1455,5 +1476,14 @@ class Server extends ServerContainer implements IServerContainer {
 	 */
 	public function getSettingsManager() {
 		return $this->query('SettingsManager');
+	}
+
+	/**
+	 * @return \OCP\Files\IAppData
+	 */
+	public function getAppDataDir($app) {
+		/** @var \OC\Files\AppData\Factory $factory */
+		$factory = $this->query(\OC\Files\AppData\Factory::class);
+		return $factory->get($app);
 	}
 }

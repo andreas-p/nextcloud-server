@@ -147,7 +147,6 @@
     "remote" : "vzdialený",
     "notify by email" : "informovať emailom",
     "Unshare" : "Zrušiť zdieľanie",
-    "can share" : "môže zdieľať",
     "can edit" : "môže upraviť",
     "create" : "vytvoriť",
     "change" : "zmeniť",
@@ -157,7 +156,6 @@
     "Share details could not be loaded for this item." : "Nebolo možné načítať údaje o zdieľaní tejto položky.",
     "{sharee} (at {server})" : "{sharee} (na {server})",
     "Share" : "Zdieľať",
-    "Share with people on other ownClouds using the syntax username@example.com/owncloud" : "Zdieľať s ľuďmi na iných serveroch ownClouds pomocou syntaxe používateľ@doména.com/owncloud",
     "Share with users…" : "Sprístupniť používateľom...",
     "Share with users, groups or remote users…" : "Sprístupniť používateľom, skupinám alebo vzdialeným používateľom...",
     "Share with users or groups…" : "Sprístupniť používateľom alebo skupinám...",
@@ -185,7 +183,6 @@
     "Please reload the page." : "Obnovte prosím stránku.",
     "The update was unsuccessful. For more information <a href=\"{url}\">check our forum post</a> covering this issue." : "Aktualizácia neprebehla úspešne. Pre viac informácií <a href=\"{url}\">navštívte príspevok na našom fóre</a>, ktorý pokrýva tento problém.",
     "Searching other places" : "Prehľadanie ostatných umiestnení",
-    "No search results in other folders" : "Žiadne výsledky vyhľadávania v ostatných priečinkoch",
     "_{count} search result in another folder_::_{count} search results in other folders_" : ["{count} výsledok vyhľadávania v ostatných priečinkoch","{count} výsledky vyhľadávania v ostatných priečinkoch","{count} výsledkov vyhľadávania v ostatných priečinkoch"],
     "Personal" : "Osobné",
     "Users" : "Používatelia",
@@ -243,9 +240,9 @@
     "Please contact your administrator." : "Kontaktujte prosím vášho administrátora.",
     "An internal error occurred." : "Došlo k vnútornej chybe.",
     "Please try again or contact your administrator." : "Skúste to znovu, alebo sa obráťte na vášho administrátora.",
-    "Log in" : "Prihlásiť sa",
     "Wrong password. Reset it?" : "Chybné heslo. Chcete ho obnoviť?",
     "Wrong password." : "Nesprávne heslo.",
+    "Log in" : "Prihlásiť sa",
     "Stay logged in" : "Zostať prihlásený",
     "Alternative Logins" : "Alternatívne prihlásenie",
     "Use the following link to reset your password: {link}" : "Použite nasledujúci odkaz pre obnovenie vášho hesla: {link}",
@@ -278,6 +275,9 @@
     "Error favoriting" : "Chyba pri pridaní do obľúbených",
     "Error unfavoriting" : "Chyba pri odobratí z obľúbených",
     "Couldn't send mail to following users: %s " : "Nebolo možné odoslať email týmto používateľom: %s ",
-    "Allow editing" : "Povoliť úpravy"
+    "Allow editing" : "Povoliť úpravy",
+    "can share" : "môže zdieľať",
+    "Share with people on other ownClouds using the syntax username@example.com/owncloud" : "Zdieľať s ľuďmi na iných serveroch ownClouds pomocou syntaxe používateľ@doména.com/owncloud",
+    "No search results in other folders" : "Žiadne výsledky vyhľadávania v ostatných priečinkoch"
 },"pluralForm" :"nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;"
 }

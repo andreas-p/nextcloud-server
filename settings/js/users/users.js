@@ -48,10 +48,8 @@ var UserList = {
 	 *				'email':			'username@example.org'
 	 *				'isRestoreDisabled':false
 	 * 			}
-	 * @param sort
-	 * @returns table row created for this user
 	 */
-	add: function (user, sort) {
+	add: function (user) {
 		if (this.currentGid && this.currentGid !== '_everyone' && _.indexOf(user.groups, this.currentGid) < 0) {
 			return;
 		}
@@ -170,20 +168,12 @@ var UserList = {
 			UserList.checkUsersToLoad();
 		}
 
-		/**
-		 * sort list
-		 */
-		if (sort) {
-			UserList.doSort();
-		}
-
 		$quotaSelect.on('change', UserList.onQuotaSelect);
 
 		// defer init so the user first sees the list appear more quickly
 		window.setTimeout(function(){
 			$quotaSelect.singleSelect();
 		}, 0);
-		return $tr;
 	},
 	// From http://my.opera.com/GreyWyvern/blog/show.dml/1671288
 	alphanum: function(a, b) {
@@ -389,8 +379,6 @@ var UserList = {
 			OC.generateUrl('/settings/users/users'),
 			{ offset: UserList.offset, limit: limit, gid: gid, pattern: pattern },
 			function (result) {
-				var loadedUsers = 0;
-				var trs = [];
 				//The offset does not mirror the amount of users available,
 				//because it is backend-dependent. For correct retrieval,
 				//always the limit(requested amount of users) needs to be added.
@@ -398,9 +386,7 @@ var UserList = {
 					if(UserList.has(user.name)) {
 						return true;
 					}
-					var $tr = UserList.add(user, user.lastLogin, false, user.backend);
-					trs.push($tr);
-					loadedUsers++;
+					UserList.add(user);
 				});
 				if (result.length > 0) {
 					UserList.doSort();
@@ -867,7 +853,8 @@ $(document).ready(function () {
 						}
 					}
 					if(!UserList.has(username)) {
-						UserList.add(result, true);
+						UserList.add(result);
+						UserList.doSort();
 					}
 					$('#newusername').focus();
 					GroupList.incEveryoneCount();
@@ -888,10 +875,10 @@ $(document).ready(function () {
 	$('#CheckboxStorageLocation').click(function() {
 		if ($('#CheckboxStorageLocation').is(':checked')) {
 			$("#userlist .storageLocation").show();
-			OC.AppConfig.setValue('core', 'umgmt_show_storage_location', 'true');
+			OCP.AppConfig.setValue('core', 'umgmt_show_storage_location', 'true');
 		} else {
 			$("#userlist .storageLocation").hide();
-			OC.AppConfig.setValue('core', 'umgmt_show_storage_location', 'false');
+			OCP.AppConfig.setValue('core', 'umgmt_show_storage_location', 'false');
 		}
 	});
 
@@ -902,10 +889,10 @@ $(document).ready(function () {
 	$('#CheckboxLastLogin').click(function() {
 		if ($('#CheckboxLastLogin').is(':checked')) {
 			$("#userlist .lastLogin").show();
-			OC.AppConfig.setValue('core', 'umgmt_show_last_login', 'true');
+			OCP.AppConfig.setValue('core', 'umgmt_show_last_login', 'true');
 		} else {
 			$("#userlist .lastLogin").hide();
-			OC.AppConfig.setValue('core', 'umgmt_show_last_login', 'false');
+			OCP.AppConfig.setValue('core', 'umgmt_show_last_login', 'false');
 		}
 	});
 
@@ -916,10 +903,10 @@ $(document).ready(function () {
 	$('#CheckboxEmailAddress').click(function() {
 		if ($('#CheckboxEmailAddress').is(':checked')) {
 			$("#userlist .mailAddress").show();
-			OC.AppConfig.setValue('core', 'umgmt_show_email', 'true');
+			OCP.AppConfig.setValue('core', 'umgmt_show_email', 'true');
 		} else {
 			$("#userlist .mailAddress").hide();
-			OC.AppConfig.setValue('core', 'umgmt_show_email', 'false');
+			OCP.AppConfig.setValue('core', 'umgmt_show_email', 'false');
 		}
 	});
 
@@ -930,10 +917,10 @@ $(document).ready(function () {
 	$('#CheckboxUserBackend').click(function() {
 		if ($('#CheckboxUserBackend').is(':checked')) {
 			$("#userlist .userBackend").show();
-			OC.AppConfig.setValue('core', 'umgmt_show_backend', 'true');
+			OCP.AppConfig.setValue('core', 'umgmt_show_backend', 'true');
 		} else {
 			$("#userlist .userBackend").hide();
-			OC.AppConfig.setValue('core', 'umgmt_show_backend', 'false');
+			OCP.AppConfig.setValue('core', 'umgmt_show_backend', 'false');
 		}
 	});
 
@@ -944,10 +931,10 @@ $(document).ready(function () {
 	$('#CheckboxMailOnUserCreate').click(function() {
 		if ($('#CheckboxMailOnUserCreate').is(':checked')) {
 			$("#newemail").show();
-			OC.AppConfig.setValue('core', 'umgmt_send_email', 'true');
+			OCP.AppConfig.setValue('core', 'umgmt_send_email', 'true');
 		} else {
 			$("#newemail").hide();
-			OC.AppConfig.setValue('core', 'umgmt_send_email', 'false');
+			OCP.AppConfig.setValue('core', 'umgmt_send_email', 'false');
 		}
 	});
 

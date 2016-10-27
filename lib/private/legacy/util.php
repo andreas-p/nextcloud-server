@@ -165,15 +165,14 @@ class OC_Util {
 
 		// install storage availability wrapper, before most other wrappers
 		\OC\Files\Filesystem::addStorageWrapper('oc_availability', function ($mountPoint, $storage) {
-			/** @var \OCP\Files\Storage $storage */
-			if (!$storage->instanceOfStorage('\OC\Files\Storage\Shared') && !$storage->isLocal()) {
+			if (!$storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage') && !$storage->isLocal()) {
 				return new \OC\Files\Storage\Wrapper\Availability(['storage' => $storage]);
 			}
 			return $storage;
 		});
 
 		\OC\Files\Filesystem::addStorageWrapper('oc_encoding', function ($mountPoint, \OCP\Files\Storage $storage, \OCP\Files\Mount\IMountPoint $mount) {
-			if ($mount->getOption('encoding_compatibility', false) && !$storage->instanceOfStorage('\OC\Files\Storage\Shared') && !$storage->isLocal()) {
+			if ($mount->getOption('encoding_compatibility', false) && !$storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage') && !$storage->isLocal()) {
 				return new \OC\Files\Storage\Wrapper\Encoding(['storage' => $storage]);
 			}
 			return $storage;
@@ -311,10 +310,20 @@ class OC_Util {
 	 *
 	 * @param String $userId
 	 * @param \OCP\Files\Folder $userDirectory
+	 * @throws \RuntimeException
 	 */
 	public static function copySkeleton($userId, \OCP\Files\Folder $userDirectory) {
 
-		$skeletonDirectory = \OCP\Config::getSystemValue('skeletondirectory', \OC::$SERVERROOT . '/core/skeleton');
+		$skeletonDirectory = \OC::$server->getConfig()->getSystemValue('skeletondirectory', \OC::$SERVERROOT . '/core/skeleton');
+		$instanceId = \OC::$server->getConfig()->getSystemValue('instanceid', '');
+
+		if ($instanceId === null) {
+			throw new \RuntimeException('no instance id!');
+		}
+		$appdata = 'appdata_' . $instanceId;
+		if ($userId === $appdata) {
+			throw new \RuntimeException('username is reserved name: ' . $appdata);
+		}
 
 		if (!empty($skeletonDirectory)) {
 			\OCP\Util::writeLog(
@@ -336,7 +345,16 @@ class OC_Util {
 	 * @return void
 	 */
 	public static function copyr($source, \OCP\Files\Folder $target) {
+		$logger = \OC::$server->getLogger();
+
+		// Verify if folder exists
 		$dir = opendir($source);
+		if($dir === false) {
+			$logger->error(sprintf('Could not opendir "%s"', $source), ['app' => 'core']);
+			return;
+		}
+
+		// Copy the files
 		while (false !== ($file = readdir($dir))) {
 			if (!\OC\Files\Filesystem::isIgnoredDir($file)) {
 				if (is_dir($source . '/' . $file)) {
@@ -344,7 +362,13 @@ class OC_Util {
 					self::copyr($source . '/' . $file, $child);
 				} else {
 					$child = $target->newFile($file);
-					stream_copy_to_stream(fopen($source . '/' . $file,'r'), $child->fopen('w'));
+					$sourceStream = fopen($source . '/' . $file, 'r');
+					if($sourceStream === false) {
+						$logger->error(sprintf('Could not fopen "%s"', $source . '/' . $file), ['app' => 'core']);
+						closedir($dir);
+						return;
+					}
+					stream_copy_to_stream($sourceStream, $child->fopen('w'));
 				}
 			}
 		}
@@ -641,15 +665,6 @@ class OC_Util {
 				'hint' => '' //TODO: sane hint
 			);
 			$webServerRestart = true;
-		}
-
-		// Check if server running on Windows platform
-		if(OC_Util::runningOnWindows()) {
-			$errors[] = [
-				'error' => $l->t('Microsoft Windows Platform is not supported'),
-				'hint' => $l->t('Running Nextcloud Server on the Microsoft Windows platform is not supported. We suggest you ' .
-					'use a Linux server in a virtual machine if you have no option for migrating the server itself.')
-			];
 		}
 
 		// Check if config folder is writable.
@@ -1241,15 +1256,6 @@ class OC_Util {
 		while (ob_get_level()) {
 			ob_end_clean();
 		}
-	}
-
-	/**
-	 * Checks whether the server is running on Windows
-	 *
-	 * @return bool true if running on Windows, false otherwise
-	 */
-	public static function runningOnWindows() {
-		return (substr(PHP_OS, 0, 3) === "WIN");
 	}
 
 	/**

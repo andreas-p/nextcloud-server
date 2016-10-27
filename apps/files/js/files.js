@@ -226,17 +226,6 @@
 			// TODO: move file list related code (upload) to OCA.Files.FileList
 			$('#file_action_panel').attr('activeAction', false);
 
-			// Triggers invisible file input
-			$('#upload a').on('click', function() {
-				$(this).parent().children('#file_upload_start').trigger('click');
-				return false;
-			});
-
-			// Trigger cancelling of file upload
-			$('#uploadprogresswrapper .stop').on('click', function() {
-				OC.Upload.cancelUploads();
-			});
-
 			// drag&drop support using jquery.fileupload
 			// TODO use OC.dialogs
 			$(document).bind('drop dragover', function (e) {
@@ -360,7 +349,7 @@ var createDragShadow = function(event) {
 		tbody.append(newtr);
 		if (elem.type === 'dir') {
 			newtr.find('td.filename')
-				.css('background-image', 'url(' + OC.imagePath('core', 'filetypes/folder.png') + ')');
+				.css('background-image', 'url(' + OC.imagePath('core', 'filetypes/folder.svg') + ')');
 		} else {
 			var path = dir + '/' + elem.name;
 			Files.lazyLoadPreview(path, elem.mimetype, function(previewpath) {

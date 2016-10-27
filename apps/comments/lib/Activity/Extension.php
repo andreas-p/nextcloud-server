@@ -159,7 +159,7 @@ class Extension implements IExtension {
 				}
 				return (string) $l->t('%1$s commented', $params);
 			case self::ADD_COMMENT_MESSAGE:
-				return $this->convertParameterToComment($params[0], 120);
+				return $this->convertParameterToComment($params[0]);
 		}
 
 		return false;
@@ -196,7 +196,6 @@ class Extension implements IExtension {
 		try {
 			return strip_tags($user) === $this->activityManager->getCurrentUserId();
 		} catch (\UnexpectedValueException $e) {
-			// FIXME this is awkward, but we have no access to the current user in emails
 			return false;
 		}
 	}
@@ -247,14 +246,15 @@ class Extension implements IExtension {
 	public function getNavigation() {
 		$l = $this->getL10N();
 		return [
-			'apps' => [],
-			'top' => [
+			'apps' => [
 				self::APP_NAME => [
 					'id' => self::APP_NAME,
+					'icon' => 'icon-comment',
 					'name' => (string) $l->t('Comments'),
 					'url' => $this->URLGenerator->linkToRoute('activity.Activities.showList', ['filter' => self::APP_NAME]),
 				],
 			],
+			'top' => [],
 		];
 	}
 
@@ -300,21 +300,12 @@ class Extension implements IExtension {
 	 * @param string $parameter
 	 * @return string
 	 */
-	protected function convertParameterToComment($parameter, $maxLength = 0) {
+	protected function convertParameterToComment($parameter) {
 		if (preg_match('/^\<parameter\>(\d*)\<\/parameter\>$/', $parameter, $matches)) {
 			try {
 				$comment = $this->commentsManager->get((int) $matches[1]);
 				$message = $comment->getMessage();
 				$message = str_replace("\n", '<br />', str_replace(['<', '>'], ['&lt;', '&gt;'], $message));
-
-				if ($maxLength && isset($message[$maxLength + 20])) {
-					$findSpace = strpos($message, ' ', $maxLength);
-					if ($findSpace !== false && $findSpace < $maxLength + 20) {
-						return substr($message, 0, $findSpace) . '…';
-					}
-					return substr($message, 0, $maxLength + 20) . '…';
-				}
-
 				return $message;
 			} catch (NotFoundException $e) {
 				return '';

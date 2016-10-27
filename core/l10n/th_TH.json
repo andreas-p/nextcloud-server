@@ -151,7 +151,6 @@
     "remote" : "รีโมท",
     "notify by email" : "แจ้งเตือนทางอีเมล",
     "Unshare" : "ยกเลิกการแชร์",
-    "can share" : "สามารถแชร์ได้",
     "can edit" : "สามารถแก้ไข",
     "create" : "สร้าง",
     "change" : "เปลี่ยนแปลง",
@@ -161,7 +160,6 @@
     "Share details could not be loaded for this item." : "รายละเอียดการแชร์ไม่สามารถโหลดสำหรับรายการนี้",
     "{sharee} (remote)" : "{sharee} (รีโมท)",
     "Share" : "แชร์",
-    "Share with people on other ownClouds using the syntax username@example.com/owncloud" : "แชร์กับคนใน ownClouds อื่นๆ ที่ใช้ไวยากรณ์ username@example.com/owncloud ",
     "Share with users, groups or remote users…" : "แชร์กับผู้ใช้หรือกลุ่มหรือผู้ใช้โดยการรีโมท ...",
     "Share with users or remote users…" : "แชร์กับผู้ใช้หรือผู้ใช้โดยการรีโมท ...",
     "Error removing share" : "พบข้อผิดพลาดในรายการที่แชร์ออก",
@@ -187,7 +185,6 @@
     "An error occurred." : "เกิดข้อผิดพลาด",
     "Please reload the page." : "โปรดโหลดหน้าเว็บใหม่",
     "Searching other places" : "กำลังค้นหาสถานที่อื่นๆ",
-    "No search results in other folders" : "ไม่พบผลลัพธ์การค้นหาในโฟลเดอร์อื่นๆ",
     "_{count} search result in another folder_::_{count} search results in other folders_" : ["ค้นหาพบ {count} ผลลัพธ์ในโฟลเดอร์อื่นๆ"],
     "Personal" : "ส่วนตัว",
     "Users" : "ผู้ใช้งาน",
@@ -244,9 +241,9 @@
     "Server side authentication failed!" : "การรับรองความถูกต้องจากเซิร์ฟเวอร์ล้มเหลว!",
     "Please contact your administrator." : "กรุณาติดต่อผู้ดูแลระบบ",
     "Please try again or contact your administrator." : "โปรดลองอีกครั้งหรือติดต่อผู้ดูแลระบบ",
-    "Log in" : "เข้าสู่ระบบ",
     "Wrong password. Reset it?" : "รหัสผ่านผิด รีเซ็ตรหัสผ่าน?",
     "Wrong password." : "รหัสผ่านผิดพลาด",
+    "Log in" : "เข้าสู่ระบบ",
     "Stay logged in" : "จดจำฉัน",
     "Alternative Logins" : "ทางเลือกการเข้าสู่ระบบ",
     "Use the following link to reset your password: {link}" : "ใช้ลิงค์ต่อไปนี้เพื่อเปลี่ยนรหัสผ่านของคุณใหม่: {link}",
@@ -279,6 +276,9 @@
     "Error favoriting" : "เกิดข้อผิดพลาดขณะเลือกที่ชื่นชอบ",
     "Error unfavoriting" : "เกิดข้อผิดพลาดขณะยกเลิกการเลือกที่ชื่นชอบ",
     "Couldn't send mail to following users: %s " : "ไม่สามารถส่งอีเมลไปยังผู้ใช้: %s",
-    "Allow editing" : "อนุญาตให้แก้ไข"
+    "Allow editing" : "อนุญาตให้แก้ไข",
+    "can share" : "สามารถแชร์ได้",
+    "Share with people on other ownClouds using the syntax username@example.com/owncloud" : "แชร์กับคนใน ownClouds อื่นๆ ที่ใช้ไวยากรณ์ username@example.com/owncloud ",
+    "No search results in other folders" : "ไม่พบผลลัพธ์การค้นหาในโฟลเดอร์อื่นๆ"
 },"pluralForm" :"nplurals=1; plural=0;"
 }

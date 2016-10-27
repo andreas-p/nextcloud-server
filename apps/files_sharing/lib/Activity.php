@@ -429,7 +429,8 @@ class Activity implements IExtension {
 			'top' => [
 				self::FILTER_SHARES => [
 					'id' => self::FILTER_SHARES,
-					'name' => (string) $l->t('Shares'),
+					'icon' => 'icon-share',
+					'name' => (string) $l->t('File shares'),
 					'url' => $this->URLGenerator->linkToRoute('activity.Activities.showList', ['filter' => self::FILTER_SHARES]),
 				],
 			],

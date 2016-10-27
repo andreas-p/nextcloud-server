@@ -1,11 +1,11 @@
 { "translations": {
+    "Comments" : "Hozzászólások",
     "New comment …" : "Új hozzászólás...",
     "Delete comment" : "Hozzászólás törlése",
     "Post" : "Küldés",
     "Cancel" : "Mégsem",
     "Edit comment" : "Hozzászólás szerkesztése",
     "[Deleted user]" : "[Törölt felhasználó]",
-    "Comments" : "Hozzászólások",
     "No comments yet, start the conversation!" : "Még nincsenek hozzászólások, kezdd el a beszélgetést!",
     "More comments …" : "Több hozzászólás...",
     "Save" : "Mentés",
@@ -13,15 +13,18 @@
     "Error occurred while retrieving comment with id {id}" : "Hiba a következő azonosítójú hozzászólás letöltése közben: {id}",
     "Error occurred while updating comment with id {id}" : "Hiba a következő azonosítójú hozzászólás frissítése közben: {id}",
     "Error occurred while posting comment" : "Hiba történt a hozzászólás küldése közben",
-    "{count} unread comments" : "{count} olvasatlan hozzászólás",
+    "_%n unread comment_::_%n unread comments_" : ["%n olvasatlan hozzászólás","%n olvasatlan hozzászólás"],
     "Comment" : "Hozzászólás",
     "<strong>Comments</strong> for files" : "<strong>Hozzászólások</strong> fájlokhoz",
     "You commented" : "Hozzászóltál",
     "%1$s commented" : "%1$s hozzászólt",
     "You commented on %2$s" : "Hozzászólt ehhez: %2$s",
     "%1$s commented on %2$s" : "%1$s hozzászólt ehhez: %2$s",
+    "A (now) deleted user mentioned you in a comment on \"%s\"." : "Egy (már) törölt felhasználó megemlített itt egy hozzászólásban: \"%s\".",
+    "%s mentioned you in a comment on \"%s\"." : "%s megemlített itt egy hozzászólásban: \"%s\".",
     "Type in a new comment..." : "Új hozzászólás írása...",
     "No other comments available" : "Nincs több hozzászólás.",
-    "More comments..." : "Több hozzászólás..."
+    "More comments..." : "Több hozzászólás...",
+    "{count} unread comments" : "{count} olvasatlan hozzászólás"
 },"pluralForm" :"nplurals=2; plural=(n != 1);"
 }

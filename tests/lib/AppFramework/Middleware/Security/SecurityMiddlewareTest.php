@@ -36,6 +36,9 @@ use OC\AppFramework\Middleware\Security\SecurityMiddleware;
 use OC\AppFramework\Utility\ControllerMethodReflector;
 use OC\Security\CSP\ContentSecurityPolicy;
 use OC\Security\CSP\ContentSecurityPolicyManager;
+use OC\Security\CSP\ContentSecurityPolicyNonceManager;
+use OC\Security\CSRF\CsrfToken;
+use OC\Security\CSRF\CsrfTokenManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\AppFramework\Http\RedirectResponse;
@@ -72,6 +75,10 @@ class SecurityMiddlewareTest extends \Test\TestCase {
 	private $urlGenerator;
 	/** @var ContentSecurityPolicyManager|\PHPUnit_Framework_MockObject_MockObject */
 	private $contentSecurityPolicyManager;
+	/** @var CsrfTokenManager|\PHPUnit_Framework_MockObject_MockObject */
+	private $csrfTokenManager;
+	/** @var ContentSecurityPolicyNonceManager|\PHPUnit_Framework_MockObject_MockObject */
+	private $cspNonceManager;
 
 	protected function setUp() {
 		parent::setUp();
@@ -83,6 +90,8 @@ class SecurityMiddlewareTest extends \Test\TestCase {
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);
 		$this->request = $this->createMock(IRequest::class);
 		$this->contentSecurityPolicyManager = $this->createMock(ContentSecurityPolicyManager::class);
+		$this->csrfTokenManager = $this->createMock(CsrfTokenManager::class);
+		$this->cspNonceManager = $this->createMock(ContentSecurityPolicyNonceManager::class);
 		$this->middleware = $this->getMiddleware(true, true);
 		$this->secException = new SecurityException('hey', false);
 		$this->secAjaxException = new SecurityException('hey', true);
@@ -103,7 +112,9 @@ class SecurityMiddlewareTest extends \Test\TestCase {
 			'files',
 			$isLoggedIn,
 			$isAdminUser,
-			$this->contentSecurityPolicyManager
+			$this->contentSecurityPolicyManager,
+			$this->csrfTokenManager,
+			$this->cspNonceManager
 		);
 	}
 
@@ -553,6 +564,10 @@ class SecurityMiddlewareTest extends \Test\TestCase {
 	}
 
 	public function testAfterController() {
+		$this->cspNonceManager
+			->expects($this->once())
+			->method('browserSupportsCspV3')
+			->willReturn(false);
 		$response = $this->createMock(Response::class);
 		$defaultPolicy = new ContentSecurityPolicy();
 		$defaultPolicy->addAllowedImageDomain('defaultpolicy');
@@ -590,5 +605,46 @@ class SecurityMiddlewareTest extends \Test\TestCase {
 			->method('setContentSecurityPolicy');
 
 		$this->middleware->afterController($this->controller, 'test', $response);
+	}
+
+	public function testAfterControllerWithContentSecurityPolicy3Support() {
+		$this->cspNonceManager
+			->expects($this->once())
+			->method('browserSupportsCspV3')
+			->willReturn(true);
+		$token = $this->createMock(CsrfToken::class);
+		$token
+			->expects($this->once())
+			->method('getEncryptedValue')
+			->willReturn('MyEncryptedToken');
+		$this->csrfTokenManager
+			->expects($this->once())
+			->method('getToken')
+			->willReturn($token);
+		$response = $this->createMock(Response::class);
+		$defaultPolicy = new ContentSecurityPolicy();
+		$defaultPolicy->addAllowedImageDomain('defaultpolicy');
+		$currentPolicy = new ContentSecurityPolicy();
+		$currentPolicy->addAllowedConnectDomain('currentPolicy');
+		$mergedPolicy = new ContentSecurityPolicy();
+		$mergedPolicy->addAllowedMediaDomain('mergedPolicy');
+		$response
+			->expects($this->exactly(2))
+			->method('getContentSecurityPolicy')
+			->willReturn($currentPolicy);
+		$this->contentSecurityPolicyManager
+			->expects($this->once())
+			->method('getDefaultPolicy')
+			->willReturn($defaultPolicy);
+		$this->contentSecurityPolicyManager
+			->expects($this->once())
+			->method('mergePolicies')
+			->with($defaultPolicy, $currentPolicy)
+			->willReturn($mergedPolicy);
+		$response->expects($this->once())
+			->method('setContentSecurityPolicy')
+			->with($mergedPolicy);
+
+		$this->assertEquals($response, $this->middleware->afterController($this->controller, 'test', $response));
 	}
 }

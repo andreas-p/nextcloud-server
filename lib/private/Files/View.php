@@ -1357,7 +1357,7 @@ class View {
 						$subStorage = $mount->getStorage();
 						if ($subStorage) {
 							// exclude shared storage ?
-							if ($extOnly && $subStorage instanceof \OC\Files\Storage\Shared) {
+							if ($extOnly && $subStorage instanceof \OCA\Files_Sharing\SharedStorage) {
 								continue;
 							}
 							$subCache = $subStorage->getCache('');
@@ -1806,13 +1806,15 @@ class View {
 			throw new InvalidPathException($l10n->t('Dot files are not allowed'));
 		}
 
-		// verify database - e.g. mysql only 3-byte chars
-		if (preg_match('%(?:
+		if (!\OC::$server->getDatabaseConnection()->supports4ByteText()) {
+			// verify database - e.g. mysql only 3-byte chars
+			if (preg_match('%(?:
       \xF0[\x90-\xBF][\x80-\xBF]{2}      # planes 1-3
     | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15
     | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16
 )%xs', $fileName)) {
-			throw new InvalidPathException($l10n->t('4-byte characters are not supported in file names'));
+				throw new InvalidPathException($l10n->t('4-byte characters are not supported in file names'));
+			}
 		}
 
 		try {

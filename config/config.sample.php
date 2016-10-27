@@ -129,6 +129,7 @@ $CONFIG = array(
  */
 'dbtableprefix' => '',
 
+
 /**
  * Indicates whether the Nextcloud instance was installed successfully; ``true``
  * indicates a successful installation, and ``false`` indicates an unsuccessful
@@ -519,7 +520,7 @@ $CONFIG = array(
 /**
  * URL that Nextcloud should use to look for updates
  */
-'updater.server.url' => 'https://updates.nextcloud.com/update-server/',
+'updater.server.url' => 'https://updates.nextcloud.com/updater_server/',
 
 /**
  * Is Nextcloud connected to the Internet or running in a closed network?
@@ -1084,6 +1085,34 @@ $CONFIG = array(
 'sqlite.journal_mode' => 'DELETE',
 
 /**
+ * If this setting is set to true MySQL can handle 4 byte characters instead of
+ * 3 byte characters
+ *
+ * MySQL requires a special setup for longer indexes (> 767 bytes) which are
+ * needed:
+ *
+ * [mysqld]
+ * innodb_large_prefix=true
+ * innodb_file_format=barracuda
+ * innodb_file_per_table=true
+ *
+ * Tables will be created with
+ *  * character set: utf8mb4
+ *  * collation:     utf8mb4_bin
+ *  * row_format:    compressed
+ *
+ * See:
+ * https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html
+ * https://dev.mysql.com/doc/refman/5.7/en/innodb-parameters.html#sysvar_innodb_large_prefix
+ * https://mariadb.com/kb/en/mariadb/xtradbinnodb-server-system-variables/#innodb_large_prefix
+ * http://www.tocker.ca/2013/10/31/benchmarking-innodb-page-compression-performance.html
+ * http://mechanics.flite.com/blog/2014/07/29/using-innodb-large-prefix-to-avoid-error-1071/
+ *
+ * WARNING: EXPERIMENTAL
+ */
+'mysql.utf8mb4' => false,
+
+/**
  * Database types that are supported for installation.
  *
  * Available:
@@ -1149,7 +1178,7 @@ $CONFIG = array(
  * client may not function as expected, and could lead to permanent data loss for
  * clients or other unexpected results.
  */
-'minimum.supported.desktop.version' => '1.7.0',
+'minimum.supported.desktop.version' => '2.0.0',
 
 /**
  * EXPERIMENTAL: option whether to include external storage in quota

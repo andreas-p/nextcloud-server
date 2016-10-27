@@ -148,6 +148,7 @@ var OCdialogs = {
 			return;
 		}
 		this.filepicker.loading = true;
+		this.filepicker.filesClient = OC.Files.getClient();
 		$.when(this._getFilePickerTemplate()).then(function($tmpl) {
 			self.filepicker.loading = false;
 			var dialogName = 'oc-dialog-filepicker-content';
@@ -156,7 +157,8 @@ var OCdialogs = {
 			}
 			self.$filePicker = $tmpl.octemplate({
 				dialog_name: dialogName,
-				title: title
+				title: title,
+				emptytext: t('core', 'No files in here')
 			}).data('path', '').data('multiselect', multiselect).data('mimetype', mimetypeFilter);
 
 			if (modal === undefined) {
@@ -172,10 +174,10 @@ var OCdialogs = {
 			$('body').append(self.$filePicker);
 
 			self.$filePicker.ready(function() {
-				self.$filelist = self.$filePicker.find('.filelist');
+				self.$filelist = self.$filePicker.find('.filelist tbody');
 				self.$dirTree = self.$filePicker.find('.dirtree');
-				self.$dirTree.on('click', 'span:not(:last-child)', self, self._handleTreeListSelect);
-				self.$filelist.on('click', 'li', function(event) {
+				self.$dirTree.on('click', 'div:not(:last-child)', self, self._handleTreeListSelect.bind(self));
+				self.$filelist.on('click', 'tr', function(event) {
 					self._handlePickerClick(event, $(this));
 				});
 				self._fillFilePicker('');
@@ -187,12 +189,15 @@ var OCdialogs = {
 					var datapath;
 					if (multiselect === true) {
 						datapath = [];
-						self.$filelist.find('.filepicker_element_selected .filename').each(function(index, element) {
-							datapath.push(self.$filePicker.data('path') + '/' + $(element).text());
+						self.$filelist.find('tr.filepicker_element_selected').each(function(index, element) {
+							datapath.push(self.$filePicker.data('path') + '/' + $(element).data('entryname'));
 						});
 					} else {
 						datapath = self.$filePicker.data('path');
-						datapath += '/' + self.$filelist.find('.filepicker_element_selected .filename').text();
+						var selectedName = self.$filelist.find('tr.filepicker_element_selected').data('entryname');
+						if (selectedName) {
+							datapath += '/' + selectedName;
+						}
 					}
 					callback(datapath);
 					self.$filePicker.ocdialog('close');
@@ -223,7 +228,11 @@ var OCdialogs = {
 			// Hence this is one of the approach to get the choose button.
 			var getOcDialog = self.$filePicker.closest('.oc-dialog');
 			var buttonEnableDisable = getOcDialog.find('.primary');
-			buttonEnableDisable.prop("disabled", "true");
+			if (self.$filePicker.data('mimetype') === "httpd/unix-directory") {
+				buttonEnableDisable.prop("disabled", false);
+			} else {
+				buttonEnableDisable.prop("disabled", true);
+			}
 
 			if (!OC.Util.hasSVGSupport()) {
 				OC.Util.replaceSVG(self.$filePicker.parent());
@@ -680,7 +689,7 @@ var OCdialogs = {
 			var self = this;
 			$.get(OC.filePath('core', 'templates', 'filepicker.html'), function(tmpl) {
 				self.$filePickerTemplate = $(tmpl);
-				self.$listTmpl = self.$filePickerTemplate.find('.filelist li:first-child').detach();
+				self.$listTmpl = self.$filePickerTemplate.find('.filelist tr:first-child').detach();
 				defer.resolve(self.$filePickerTemplate);
 			})
 			.fail(function(jqXHR, textStatus, errorThrown) {
@@ -723,7 +732,7 @@ var OCdialogs = {
 		}
 		return defer.promise();
 	},
-	_getFileList: function(dir, mimeType) {
+	_getFileList: function(dir, mimeType) { //this is only used by the spreedme app atm
 		if (typeof(mimeType) === "string") {
 			mimeType = [mimeType];
 		}
@@ -741,43 +750,68 @@ var OCdialogs = {
 	 * fills the filepicker with files
 	*/
 	_fillFilePicker:function(dir) {
-		var dirs = [];
-		var others = [];
 		var self = this;
 		this.$filelist.empty().addClass('icon-loading');
 		this.$filePicker.data('path', dir);
-		$.when(this._getFileList(dir, this.$filePicker.data('mimetype'))).then(function(response) {
-
-			$.each(response.data.files, function(index, file) {
-				if (file.type === 'dir') {
-					dirs.push(file);
+		var filter = this.$filePicker.data('mimetype');
+		if (typeof(filter) === "string") {
+			filter = [filter];
+		}
+		self.filepicker.filesClient.getFolderContents(dir).then(function(status, files) {
+			if (filter) {
+				files = files.filter(function (file) {
+					return filter == [] || file.type === 'dir' || filter.indexOf(file.mimetype) !== -1;
+				});
+			}
+			files = files.sort(function(a, b) {
+				if (a.type === 'dir' && b.type !== 'dir') {
+					return -1;
+				} else if(a.type !== 'dir' && b.type === 'dir') {
+					return 1;
 				} else {
-					others.push(file);
+					return 0;
 				}
 			});
 
 			self._fillSlug();
-			var sorted = dirs.concat(others);
 
-			$.each(sorted, function(idx, entry) {
+			if (files.length === 0) {
+				self.$filePicker.find('.emptycontent').show();
+			} else {
+				self.$filePicker.find('.emptycontent').hide();
+			}
+
+			$.each(files, function(idx, entry) {
 				entry.icon = OC.MimeType.getIconUrl(entry.mimetype);
-				var $li = self.$listTmpl.octemplate({
+				if (typeof(entry.size) !== 'undefined' && entry.size >= 0) {
+					var simpleSize = humanFileSize(parseInt(entry.size, 10), true);
+					var sizeColor = Math.round(160 - Math.pow((entry.size / (1024 * 1024)), 2));
+				} else {
+					simpleSize = t('files', 'Pending');
+				}
+				var $row = self.$listTmpl.octemplate({
 					type: entry.type,
 					dir: dir,
 					filename: entry.name,
-					date: OC.Util.relativeModifiedDate(entry.mtime)
+					date: OC.Util.relativeModifiedDate(entry.mtime),
+					size: simpleSize,
+					sizeColor: sizeColor,
+					icon: entry.icon
 				});
 				if (entry.type === 'file') {
 					var urlSpec = {
-						file: dir + '/' + entry.name
+						file: dir + '/' + entry.name,
 					};
+					var img = new Image();
 					var previewUrl = OC.generateUrl('/core/preview.png?') + $.param(urlSpec);
-					$li.find('img').attr('src', previewUrl);
+					img.onload = function() {
+						if (img.width > 5) {
+							$row.find('td.filename').attr('style', 'background-image:url(' + previewUrl + ')');
+						}
+					};
+					img.src = previewUrl;
 				}
-				else {
-					$li.find('img').attr('src', OC.Util.replaceSVGIcon(entry.icon));
-				}
-				self.$filelist.append($li);
+				self.$filelist.append($row);
 			});
 
 			self.$filelist.removeClass('icon-loading');
@@ -792,8 +826,9 @@ var OCdialogs = {
 	_fillSlug: function() {
 		this.$dirTree.empty();
 		var self = this;
+		var dir;
 		var path = this.$filePicker.data('path');
-		var $template = $('<span data-dir="{dir}">{name}</span>');
+		var $template = $('<div data-dir="{dir}"><a>{name}</a></div>').addClass('crumb');
 		if(path) {
 			var paths = path.split('/');
 			$.each(paths, function(index, dir) {
@@ -809,19 +844,19 @@ var OCdialogs = {
 		}
 		$template.octemplate({
 			dir: '',
-			name: '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' // Ugly but works ;)
-		}, {escapeFunction: null}).addClass('home svg').prependTo(this.$dirTree);
+			name: '' // Ugly but works ;)
+		}, {escapeFunction: null}).prependTo(this.$dirTree);
 	},
 	/**
 	 * handle selection made in the tree list
 	*/
 	_handleTreeListSelect:function(event) {
 		var self = event.data;
-		var dir = $(event.target).data('dir');
+		var dir = $(event.target).parent().data('dir');
 		self._fillFilePicker(dir);
-		var getOcDialog = this.closest('.oc-dialog');
+		var getOcDialog = (event.target).closest('.oc-dialog');
 		var buttonEnableDisable = $('.primary', getOcDialog);
-		if (this.$filePicker.data('mimetype') === "http/unix-directory") {
+		if (this.$filePicker.data('mimetype') === "httpd/unix-directory") {
 			buttonEnableDisable.prop("disabled", false);
 		} else {
 			buttonEnableDisable.prop("disabled", true);

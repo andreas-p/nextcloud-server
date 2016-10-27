@@ -46,6 +46,7 @@ class UpdateChecker {
 		if(isset($data['version']) && $data['version'] !== '' && $data['version'] !== []) {
 			$result['updateAvailable'] = true;
 			$result['updateVersion'] = $data['versionstring'];
+			$result['updaterEnabled'] = $data['autoupdater'] === '1';
 			if(substr($data['web'], 0, 8) === 'https://') {
 				$result['updateLink'] = $data['web'];
 			}

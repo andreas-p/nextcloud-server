@@ -112,7 +112,10 @@ function updateAvatar (hidedefault) {
 		$('#header .avatardiv').addClass('avatardiv-shown');
 	}
 	$displaydiv.css({'background-color': ''});
-	$displaydiv.avatar(OC.currentUser, 145, true);
+	$displaydiv.avatar(OC.currentUser, 145, true, null, function() {
+		$displaydiv.removeClass('loading');
+		$('#displayavatar img').show();
+	});
 	$.get(OC.generateUrl(
 		'/avatar/{user}/{size}',
 		{
@@ -129,24 +132,27 @@ function updateAvatar (hidedefault) {
 
 function showAvatarCropper () {
 	var $cropper = $('#cropper');
-	$cropper.prepend("<img>");
-	var $cropperImage = $('#cropper img');
+	var $cropperImage = $('<img/>');
+	$cropperImage.css('opacity', 0); // prevent showing the unresized image
+	$cropper.children('.inner-container').prepend($cropperImage);
 
 	$cropperImage.attr('src',
 		OC.generateUrl('/avatar/tmp') + '?requesttoken=' + encodeURIComponent(oc_requesttoken) + '#' + Math.floor(Math.random() * 1000));
 
-	// Looks weird, but on('load', ...) doesn't work in IE8
-	$cropperImage.ready(function () {
-		$('#displayavatar').hide();
-		$cropper.show();
-
+	$cropperImage.load(function () {
+		var img = $cropperImage.get()[0];
+		var selectSize = Math.min(img.width, img.height);
+		var offsetX = (img.width - selectSize) / 2;
+		var offsetY = (img.height - selectSize) / 2;
 		$cropperImage.Jcrop({
 			onChange: saveCoords,
 			onSelect: saveCoords,
 			aspectRatio: 1,
-			boxHeight: 500,
-			boxWidth: 500,
-			setSelect: [0, 0, 300, 300]
+			boxHeight: Math.min(500, $('#app-content').height() -100),
+			boxWidth: Math.min(500, $('#app-content').width()),
+			setSelect: [offsetX, offsetY, selectSize, selectSize]
+		}, function() {
+			$cropper.show();
 		});
 	});
 }
@@ -197,8 +203,16 @@ $(document).ready(function () {
 	if($('#pass2').length) {
 		$('#pass2').showPassword().keyup();
 	}
+
+	var removeloader = function () {
+		setTimeout(function(){
+			if ($('.password-state').length > 0) {
+				$('.password-state').remove();
+			}
+		}, 5000)
+	};
+
 	$("#passwordbutton").click(function () {
-		OC.msg.startSaving('#password-error-msg');
 		var isIE8or9 = $('html').hasClass('lte9');
 		// FIXME - TODO - once support for IE8 and IE9 is dropped
 		// for IE8 and IE9 this will check additionally if the typed in password
@@ -210,12 +224,17 @@ $(document).ready(function () {
 			var post = $("#passwordform").serialize();
 			$('#passwordchanged').hide();
 			$('#passworderror').hide();
+			$("#passwordbutton").attr('disabled', 'disabled');
+			$("#passwordbutton").after("<span class='password-loading icon icon-loading-small-dark password-state'></span>");
+			$(".personal-show-label").hide();
 			// Ajax foo
 			$.post(OC.generateUrl('/settings/personal/changepassword'), post, function (data) {
 				if (data.status === "success") {
+					$("#passwordbutton").after("<span class='checkmark icon icon-checkmark password-state'></span>");
+					removeloader();
+					$(".personal-show-label").show();
 					$('#pass1').val('');
 					$('#pass2').val('').change();
-					OC.msg.finishedSaving('#password-error-msg', data);
 				} else {
 					if (typeof(data.data) !== "undefined") {
 						OC.msg.finishedSaving('#password-error-msg', data);
@@ -230,6 +249,8 @@ $(document).ready(function () {
 						);
 					}
 				}
+				$(".password-loading").remove();
+				$("#passwordbutton").removeAttr('disabled');
 			});
 			return false;
 		} else {
@@ -243,7 +264,6 @@ $(document).ready(function () {
 			);
 			return false;
 		}
-
 	});
 
 	$('#displayName').keyUpDelayedOrEnter(changeDisplayName);
@@ -279,6 +299,8 @@ $(document).ready(function () {
 			avatarResponseHandler(response);
 		},
 		submit: function(e, data) {
+			$('#displayavatar img').hide();
+			$('#displayavatar .avatardiv').addClass('loading');
 			data.formData = _.extend(data.formData || {}, {
 				requesttoken: OC.requestToken
 			});
@@ -292,8 +314,8 @@ $(document).ready(function () {
 				msg = data.jqXHR.responseJSON.data.message;
 			}
 			avatarResponseHandler({
-			data: {
-					message: t('settings', 'An error occurred: {message}', { message: msg })
+				data: {
+					message: msg
 				}
 			});
 		}
@@ -305,12 +327,14 @@ $(document).ready(function () {
 		OC.dialogs.filepicker(
 			t('settings', "Select a profile picture"),
 			function (path) {
+				$('#displayavatar img').hide();
+				$('#displayavatar .avatardiv').addClass('loading');
 				$.ajax({
 					type: "POST",
 					url: OC.generateUrl('/avatar/'),
 					data: { path: path }
 				}).done(avatarResponseHandler)
-					.fail(function(jqXHR, status){
+					.fail(function(jqXHR) {
 						var msg = jqXHR.statusText + ' (' + jqXHR.status + ')';
 						if (!_.isUndefined(jqXHR.responseJSON) &&
 							!_.isUndefined(jqXHR.responseJSON.data) &&
@@ -320,7 +344,7 @@ $(document).ready(function () {
 						}
 						avatarResponseHandler({
 							data: {
-								message: t('settings', 'An error occurred: {message}', { message: msg })
+								message: msg
 							}
 						});
 					});
@@ -342,6 +366,8 @@ $(document).ready(function () {
 	});
 
 	$('#abortcropperbutton').click(function () {
+		$('#displayavatar .avatardiv').removeClass('loading');
+		$('#displayavatar img').show();
 		cleanCropper();
 	});
 
@@ -350,7 +376,7 @@ $(document).ready(function () {
 	});
 
 	$('#pass2').strengthify({
-		zxcvbn: OC.linkTo('core','vendor/zxcvbn/zxcvbn.js'),
+		zxcvbn: OC.linkTo('core','vendor/zxcvbn/dist/zxcvbn.js'),
 		titles: [
 			t('core', 'Very weak password'),
 			t('core', 'Weak password'),

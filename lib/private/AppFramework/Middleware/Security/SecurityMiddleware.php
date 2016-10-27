@@ -36,6 +36,8 @@ use OC\AppFramework\Middleware\Security\Exceptions\NotLoggedInException;
 use OC\AppFramework\Middleware\Security\Exceptions\StrictCookieMissingException;
 use OC\AppFramework\Utility\ControllerMethodReflector;
 use OC\Security\CSP\ContentSecurityPolicyManager;
+use OC\Security\CSP\ContentSecurityPolicyNonceManager;
+use OC\Security\CSRF\CsrfTokenManager;
 use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\AppFramework\Http\RedirectResponse;
@@ -77,6 +79,10 @@ class SecurityMiddleware extends Middleware {
 	private $isAdminUser;
 	/** @var ContentSecurityPolicyManager */
 	private $contentSecurityPolicyManager;
+	/** @var CsrfTokenManager */
+	private $csrfTokenManager;
+	/** @var ContentSecurityPolicyNonceManager */
+	private $cspNonceManager;
 
 	/**
 	 * @param IRequest $request
@@ -88,6 +94,8 @@ class SecurityMiddleware extends Middleware {
 	 * @param bool $isLoggedIn
 	 * @param bool $isAdminUser
 	 * @param ContentSecurityPolicyManager $contentSecurityPolicyManager
+	 * @param CSRFTokenManager $csrfTokenManager
+	 * @param ContentSecurityPolicyNonceManager $cspNonceManager
 	 */
 	public function __construct(IRequest $request,
 								ControllerMethodReflector $reflector,
@@ -97,7 +105,9 @@ class SecurityMiddleware extends Middleware {
 								$appName,
 								$isLoggedIn,
 								$isAdminUser,
-								ContentSecurityPolicyManager $contentSecurityPolicyManager) {
+								ContentSecurityPolicyManager $contentSecurityPolicyManager,
+								CsrfTokenManager $csrfTokenManager,
+								ContentSecurityPolicyNonceManager $cspNonceManager) {
 		$this->navigationManager = $navigationManager;
 		$this->request = $request;
 		$this->reflector = $reflector;
@@ -107,6 +117,8 @@ class SecurityMiddleware extends Middleware {
 		$this->isLoggedIn = $isLoggedIn;
 		$this->isAdminUser = $isAdminUser;
 		$this->contentSecurityPolicyManager = $contentSecurityPolicyManager;
+		$this->csrfTokenManager = $csrfTokenManager;
+		$this->cspNonceManager = $cspNonceManager;
 	}
 
 
@@ -189,6 +201,10 @@ class SecurityMiddleware extends Middleware {
 
 		$defaultPolicy = $this->contentSecurityPolicyManager->getDefaultPolicy();
 		$defaultPolicy = $this->contentSecurityPolicyManager->mergePolicies($defaultPolicy, $policy);
+
+		if($this->cspNonceManager->browserSupportsCspV3()) {
+			$defaultPolicy->useJsNonce($this->csrfTokenManager->getToken()->getEncryptedValue());
+		}
 
 		$response->setContentSecurityPolicy($defaultPolicy);
 

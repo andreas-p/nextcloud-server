@@ -254,16 +254,9 @@ class OC_Helper {
 		if ($path === false) {
 			$path = getenv("PATH");
 		}
-		// check method depends on operating system
-		if (!strncmp(PHP_OS, "WIN", 3)) {
-			// on Windows an appropriate COM or EXE file needs to exist
-			$exts = array(".exe", ".com");
-			$check_fn = "file_exists";
-		} else {
-			// anywhere else we look for an executable file of that name
-			$exts = array("");
-			$check_fn = "is_executable";
-		}
+		// we look for an executable file of that name
+		$exts = [""];
+		$check_fn = "is_executable";
 		// Default check will be done with $path directories :
 		$dirs = explode(PATH_SEPARATOR, $path);
 		// WARNING : We have to check if open_basedir is enabled :
@@ -375,32 +368,6 @@ class OC_Helper {
 		}
 
 		return $newpath;
-	}
-
-	/**
-	 * Checks if $sub is a subdirectory of $parent
-	 *
-	 * @param string $sub
-	 * @param string $parent
-	 * @return bool
-	 */
-	public static function isSubDirectory($sub, $parent) {
-		$realpathSub = realpath($sub);
-		$realpathParent = realpath($parent);
-
-		// realpath() may return false in case the directory does not exist
-		// since we can not be sure how different PHP versions may behave here
-		// we do an additional check whether realpath returned false
-		if($realpathSub === false ||  $realpathParent === false) {
-			return false;
-		}
-
-		// Check whether $sub is a subdirectory of $parent
-		if (strpos($realpathSub, $realpathParent) === 0) {
-			return true;
-		}
-
-		return false;
 	}
 
 	/**
@@ -524,7 +491,6 @@ class OC_Helper {
 
 	/**
 	 * Try to find a program
-	 * Note: currently windows is not supported
 	 *
 	 * @param string $program
 	 * @return null|string
@@ -583,7 +549,7 @@ class OC_Helper {
 		$quota = \OCP\Files\FileInfo::SPACE_UNLIMITED;
 		$storage = $rootInfo->getStorage();
 		$sourceStorage = $storage;
-		if ($storage->instanceOfStorage('\OC\Files\Storage\Shared')) {
+		if ($storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage')) {
 			$includeExtStorage = false;
 			$sourceStorage = $storage->getSourceStorage();
 		}

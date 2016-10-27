@@ -24,6 +24,7 @@ namespace Tests\Core\Controller;
 use OC\Core\Controller\LostController;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\Encryption\IManager;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -39,7 +40,7 @@ use PHPUnit_Framework_MockObject_MockObject;
  *
  * @package OC\Core\Controller
  */
-class LostControllerTest extends \PHPUnit_Framework_TestCase {
+class LostControllerTest extends \Test\TestCase {
 
 	/** @var LostController */
 	private $lostController;
@@ -59,12 +60,15 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 	private $mailer;
 	/** @var ISecureRandom | PHPUnit_Framework_MockObject_MockObject */
 	private $secureRandom;
+	/** @var IManager|PHPUnit_Framework_MockObject_MockObject */
+	private $encryptionManager;
 	/** @var ITimeFactory | PHPUnit_Framework_MockObject_MockObject */
 	private $timeFactory;
 	/** @var IRequest */
 	private $request;
 
 	protected function setUp() {
+		parent::setUp();
 
 		$this->existingUser = $this->getMockBuilder('OCP\IUser')
 				->disableOriginalConstructor()->getMock();
@@ -98,6 +102,11 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 			->disableOriginalConstructor()->getMock();
 		$this->request = $this->getMockBuilder('OCP\IRequest')
 			->disableOriginalConstructor()->getMock();
+		$this->encryptionManager = $this->getMockBuilder(IManager::class)
+			->disableOriginalConstructor()->getMock();
+		$this->encryptionManager->expects($this->any())
+			->method('isEnabled')
+			->willReturn(true);
 		$this->lostController = new LostController(
 			'Core',
 			$this->request,
@@ -108,7 +117,7 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 			$this->config,
 			$this->secureRandom,
 			'lostpassword-noreply@localhost',
-			true,
+			$this->encryptionManager,
 			$this->mailer,
 			$this->timeFactory
 		);
@@ -162,8 +171,6 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 
 
 	public function testResetFormExpiredToken() {
-		$userId = 'ValidTokenUser';
-		$token = '12345:TheOnlyAndOnlyOneTokenToResetThePassword';
 		$user = $this->getMockBuilder('\OCP\IUser')
 			->disableOriginalConstructor()->getMock();
 		$this->userManager
@@ -195,8 +202,6 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 	}
 
 	public function testResetFormValidToken() {
-		$userId = 'ValidTokenUser';
-		$token = '12345:TheOnlyAndOnlyOneTokenToResetThePassword';
 		$user = $this->getMockBuilder('\OCP\IUser')
 			->disableOriginalConstructor()->getMock();
 		$user
