@@ -745,6 +745,18 @@ class Cache implements ICache {
 			->whereStorageId()
 			->andWhere($query->expr()->iLike('name', $query->createNamedParameter($pattern)));
 
+		try {
+		    foreach (explode('&', explode('?', $_REQUEST['from'], 2)[1]) as $part) {
+		        list($var, $val) = explode('=', $part, 2);
+		        if ($var == "fileid") {
+		            $query->whereParent(intval($val));
+		            break;
+		        }
+		    }
+		}
+		catch (Exception $e) {
+		}
+		
 		return array_map(function (array $data) {
 			return self::cacheEntryFromData($data, $this->mimetypeLoader);
 		}, $query->execute()->fetchAll());
